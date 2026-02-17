@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  backlogItems BacklogItem[]
+  reviews      Review[]
+  lists        List[]
+  followers    Follow[]      @relation("Following")
+  following    Follow[]      @relation("Followers")
+
+  @@map("users")
+}
+
+model BacklogItem {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  contentType String   @map("content_type") @db.VarChar(20)
+  externalId  String?  @map("external_id") @db.VarChar(100)
+  title       String   @db.VarChar(255)
+  status      String   @default("pending") @db.VarChar(20)
+  progress    Int      @default(0)
+  priority    String   @default("medium") @db.VarChar(20)
+  coverImage  String?  @map("cover_image") @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews Review[]
+
+  @@map("backlog_items")
+}
+
+model Review {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  backlogItemId Int      @map("backlog_item_id")
+  rating        Int      @db.TinyInt
+  reviewText    String?  @map("review_text") @db.Text
+  tags          Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  backlogItem BacklogItem @relation(fields: [backlogItemId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model List {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  items       Json
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("lists")
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int      @map("follower_id")
+  followingId Int      @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
