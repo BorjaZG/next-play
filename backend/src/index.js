@@ -15,7 +15,11 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// Ruta de prueba para verificar que el servidor funciona
+// Rutas
+const authRoutes = require('./routes/auth.routes')
+app.use('/auth', authRoutes)
+
+// Ruta de health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
