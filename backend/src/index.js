@@ -18,9 +18,11 @@ app.use(express.json())
 // Rutas
 const authRoutes = require('./routes/auth.routes')
 const backlogRoutes = require('./routes/backlog.routes')
+const reviewRoutes = require('./routes/review.routes')
 
 app.use('/auth', authRoutes)
 app.use('/backlog', backlogRoutes)
+app.use('/reviews', reviewRoutes)
 
 // Ruta de health check
 app.get('/health', (req, res) => {
