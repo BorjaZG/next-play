@@ -22,6 +22,7 @@ const reviewRoutes = require('./routes/review.routes')
 const listRoutes = require('./routes/list.routes')
 const followRoutes = require('./routes/follow.routes')
 const userRoutes = require('./routes/user.routes')
+const searchRoutes = require('./routes/search.routes')
 
 
 app.use('/auth', authRoutes)
@@ -30,8 +31,9 @@ app.use('/reviews', reviewRoutes)
 app.use('/lists', listRoutes)
 app.use('/follows', followRoutes)
 app.use('/users', userRoutes)
+app.use('/search', searchRoutes)
 
-// Ruta de health check
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
