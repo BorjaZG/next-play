@@ -20,11 +20,16 @@ const authRoutes = require('./routes/auth.routes')
 const backlogRoutes = require('./routes/backlog.routes')
 const reviewRoutes = require('./routes/review.routes')
 const listRoutes = require('./routes/list.routes')
+const followRoutes = require('./routes/follow.routes')
+const userRoutes = require('./routes/user.routes')
+
 
 app.use('/auth', authRoutes)
 app.use('/backlog', backlogRoutes)
 app.use('/reviews', reviewRoutes)
 app.use('/lists', listRoutes)
+app.use('/follows', followRoutes)
+app.use('/users', userRoutes)
 
 // Ruta de health check
 app.get('/health', (req, res) => {
