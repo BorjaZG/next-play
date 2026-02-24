@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gray-800;  /* <- CAMBIAR ESTA LÍNEA */
+  }
+  
+  body {
+    @apply bg-dark-bg text-white antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-main text-white font-semibold py-3 px-6 rounded-lg 
+           hover:opacity-90 transition-opacity duration-200 
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-dark-hover text-white font-medium py-3 px-6 rounded-lg 
+           border border-gray-700 hover:border-primary-purple 
+           transition-colors duration-200;
+  }
+  
+  .input-field {
+    @apply w-full bg-dark-card border border-gray-700 rounded-lg px-4 py-3 
+           text-white placeholder-gray-500 
+           focus:outline-none focus:border-primary-purple focus:ring-1 focus:ring-primary-purple
+           transition-colors duration-200;
+  }
+  
+  .card {
+    @apply bg-dark-card rounded-xl p-6 border border-gray-800 
+           hover:border-gray-700 transition-colors duration-200;
+  }
+}
