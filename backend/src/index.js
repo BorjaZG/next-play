@@ -23,7 +23,7 @@ const listRoutes = require('./routes/list.routes')
 const followRoutes = require('./routes/follow.routes')
 const userRoutes = require('./routes/user.routes')
 const searchRoutes = require('./routes/search.routes')
-
+const aiRoutes = require('./routes/ai.routes')
 
 app.use('/auth', authRoutes)
 app.use('/backlog', backlogRoutes)
@@ -32,6 +32,7 @@ app.use('/lists', listRoutes)
 app.use('/follows', followRoutes)
 app.use('/users', userRoutes)
 app.use('/search', searchRoutes)
+app.use('/ai', aiRoutes)
 
 
 app.get('/health', (req, res) => {
