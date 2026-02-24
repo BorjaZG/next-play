@@ -20,6 +20,7 @@ model User {
   lists        List[]
   followers    Follow[]      @relation("Following")
   following    Follow[]      @relation("Followers")
+  achievements Achievement[]
 
   @@map("users")
 }
@@ -86,4 +87,18 @@ model Follow {
 
   @@unique([followerId, followingId])
   @@map("follows")
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  type        String   @db.VarChar(50)
+  title       String   @db.VarChar(100)
+  description String   @db.VarChar(255)
+  icon        String?  @db.VarChar(50)
+  unlockedAt  DateTime @default(now()) @map("unlocked_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("achievements")
 }
