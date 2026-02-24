@@ -24,6 +24,7 @@ const followRoutes = require('./routes/follow.routes')
 const userRoutes = require('./routes/user.routes')
 const searchRoutes = require('./routes/search.routes')
 const aiRoutes = require('./routes/ai.routes')
+const statsRoutes = require('./routes/stats.routes')
 
 app.use('/auth', authRoutes)
 app.use('/backlog', backlogRoutes)
@@ -33,6 +34,7 @@ app.use('/follows', followRoutes)
 app.use('/users', userRoutes)
 app.use('/search', searchRoutes)
 app.use('/ai', aiRoutes)
+app.use('/stats', statsRoutes)
 
 
 app.get('/health', (req, res) => {
