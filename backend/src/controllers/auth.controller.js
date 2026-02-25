@@ -53,7 +53,8 @@ const register = async (req, res) => {
         id: true,
         username: true,
         email: true,
-        createdAt: true
+        createdAt: true,
+        updatedAt: true
       }
     })
 
@@ -66,8 +67,14 @@ const register = async (req, res) => {
 
     res.status(201).json({
       message: 'Usuario registrado correctamente',
-      user,
-      token
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
     })
 
   } catch (error) {
@@ -119,12 +126,14 @@ const login = async (req, res) => {
 
     res.json({
       message: 'Login exitoso',
+      token,
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
-      },
-      token
+        email: user.email,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
     })
 
   } catch (error) {
@@ -145,7 +154,8 @@ const getMe = async (req, res) => {
         id: true,
         username: true,
         email: true,
-        createdAt: true
+        createdAt: true,
+        updatedAt: true
       }
     })
 

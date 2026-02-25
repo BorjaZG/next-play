@@ -63,7 +63,7 @@ const getListById = async (req, res) => {
     res.json({ 
       list: {
         ...list,
-        backlogItems
+        fullItems: backlogItems
       }
     })
 
