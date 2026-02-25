@@ -5,6 +5,9 @@ import Home from './pages/Home'
 import Backlog from './pages/Backlog'
 import Search from './pages/Search'
 import BacklogDetail from './pages/BacklogDetail'
+import Lists from './pages/Lists'
+import ListDetail from './pages/ListDetail'
+import Profile from './pages/Profile'
 import PrivateRoute from './components/PrivateRoute'
 import Header from './components/layout/Header'
 
@@ -52,6 +55,33 @@ function App() {
           element={
             <PrivateRoute>
               <Search />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/lists"
+          element={
+            <PrivateRoute>
+              <Lists />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/lists/:id"
+          element={
+            <PrivateRoute>
+              <ListDetail />
             </PrivateRoute>
           }
         />
