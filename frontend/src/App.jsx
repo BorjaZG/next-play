@@ -4,6 +4,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import Backlog from './pages/Backlog'
 import Search from './pages/Search'
+import BacklogDetail from './pages/BacklogDetail'
 import PrivateRoute from './components/PrivateRoute'
 import Header from './components/layout/Header'
 
@@ -33,6 +34,15 @@ function App() {
                 <Header />
                 <Backlog />
               </div>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/backlog/:id"
+          element={
+            <PrivateRoute>
+              <BacklogDetail />
             </PrivateRoute>
           }
         />
