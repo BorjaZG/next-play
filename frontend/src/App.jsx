@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
+import Backlog from './pages/Backlog'
 import PrivateRoute from './components/PrivateRoute'
+import Header from './components/layout/Header'
 
 function App() {
   return (
@@ -18,6 +20,18 @@ function App() {
           element={
             <PrivateRoute>
               <Home />
+            </PrivateRoute>
+          }
+        />
+        
+        <Route
+          path="/backlog"
+          element={
+            <PrivateRoute>
+              <div>
+                <Header />
+                <Backlog />
+              </div>
             </PrivateRoute>
           }
         />
