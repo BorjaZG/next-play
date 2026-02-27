@@ -61,9 +61,12 @@ export default function Header() {
               <Sparkles className="w-4 h-4" />
               IA
             </Link>
-            <span className="text-gray-600 cursor-not-allowed">
+            <Link 
+              to="/statistics" 
+              className="text-gray-300 hover:text-white transition-colors"
+            >
               Estadísticas
-            </span>
+            </Link>
           </nav>
 
           {/* User menu */}
