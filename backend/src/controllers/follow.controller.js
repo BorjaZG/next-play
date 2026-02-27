@@ -221,7 +221,7 @@ const getUserProfile = async (req, res) => {
     }
 
     // Contar estadísticas
-    const [backlogCount, completedCount, followersCount, followingCount] = await Promise.all([
+    const [backlogCount, completedCount, followersCount, followingCount, playingCount, pendingCount] = await Promise.all([
       prisma.backlogItem.count({
         where: { userId: parseInt(userId) }
       }),
@@ -236,8 +236,42 @@ const getUserProfile = async (req, res) => {
       }),
       prisma.follow.count({
         where: { followerId: parseInt(userId) }
+      }),
+      prisma.backlogItem.count({
+        where: { 
+          userId: parseInt(userId),
+          status: 'playing'
+        }
+      }),
+      prisma.backlogItem.count({
+        where: { 
+          userId: parseInt(userId),
+          status: 'pending'
+        }
       })
     ])
+
+    // Calcular puntuación media de reviews
+const reviews = await prisma.review.findMany({
+  where: {
+    backlogItem: {
+      userId: parseInt(userId)
+    }
+  },
+  select: {
+    rating: true
+  }
+})
+
+const averageRating = reviews.length > 0
+  ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
+  : 0
+
+    // Obtener achievements
+    const achievements = await prisma.achievement.findMany({
+      where: { userId: parseInt(userId) },
+      orderBy: { unlockedAt: 'desc' }
+    })
 
     // Verificar si el usuario autenticado sigue a este usuario
     let isFollowing = false
@@ -251,14 +285,29 @@ const getUserProfile = async (req, res) => {
       isFollowing = !!follow
     }
 
+    // Calcular completion rate
+    const completionRate = backlogCount > 0 
+      ? Math.round((completedCount / backlogCount) * 100) 
+      : 0
+
     res.json({ 
       user: {
         ...user,
         stats: {
           totalItems: backlogCount,
           completedItems: completedCount,
+          playingItems: playingCount,
+          pendingItems: pendingCount,
           followers: followersCount,
-          following: followingCount
+          following: followingCount,
+          completionRate,
+          averageRating
+        },
+        achievements: {
+          unlocked: achievements,
+          unlockedCount: achievements.length,
+          totalAchievements: 12,
+          progress: Math.round((achievements.length / 12) * 100)
         },
         isFollowing
       }
@@ -310,6 +359,53 @@ const getUserBacklog = async (req, res) => {
   }
 }
 
+// Obtener lista de usuarios sugeridos (todos menos el actual)
+const getSuggestedUsers = async (req, res) => {
+  try {
+    const currentUserId = req.userId
+
+    // Obtener todos los usuarios excepto el actual
+    const users = await prisma.user.findMany({
+      where: {
+        id: { not: currentUserId }
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        createdAt: true
+      },
+      take: 20 // Límite de 20 usuarios sugeridos
+    })
+
+    // Para cada usuario, calcular sus stats
+    const usersWithStats = await Promise.all(users.map(async (user) => {
+      const [totalItems, completedItems, followers, following] = await Promise.all([
+        prisma.backlogItem.count({ where: { userId: user.id } }),
+        prisma.backlogItem.count({ where: { userId: user.id, status: 'completed' } }),
+        prisma.follow.count({ where: { followingId: user.id } }),
+        prisma.follow.count({ where: { followerId: user.id } })
+      ])
+
+      return {
+        ...user,
+        stats: {
+          totalItems,
+          completedItems,
+          followers,
+          following
+        }
+      }
+    }))
+
+    res.json({ users: usersWithStats })
+
+  } catch (error) {
+    console.error('Error en getSuggestedUsers:', error)
+    res.status(500).json({ error: 'Error al obtener usuarios sugeridos' })
+  }
+}
+
 module.exports = {
   followUser,
   unfollowUser,
@@ -317,5 +413,6 @@ module.exports = {
   getFollowers,
   checkIfFollowing,
   getUserProfile,
-  getUserBacklog
+  getUserBacklog,
+  getSuggestedUsers
 }

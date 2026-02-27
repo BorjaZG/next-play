@@ -43,11 +43,20 @@ export default function Header() {
               Listas
             </Link>
             <Link 
-              to="/stats" 
+              to="/discover" 
               className="text-gray-300 hover:text-white transition-colors"
             >
-              Estadísticas
+              Descubrir
             </Link>
+            <Link 
+              to="/following" 
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Social
+            </Link>
+            <span className="text-gray-600 cursor-not-allowed">
+              Estadísticas
+            </span>
           </nav>
 
           {/* User menu */}

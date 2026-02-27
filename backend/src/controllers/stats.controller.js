@@ -17,7 +17,7 @@ const getGeneralStats = async (req, res) => {
       prisma.backlogItem.count({ where: { userId, status: 'abandoned' } })
     ])
 
-    // Contar por tipo de contenido
+    // Estadísticas por tipo de contenido
     const byType = await prisma.backlogItem.groupBy({
       by: ['contentType'],
       where: { userId },

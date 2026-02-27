@@ -18,6 +18,9 @@ router.get('/following', followController.getFollowing)
 // GET /follows/followers - Obtener mis seguidores
 router.get('/followers', followController.getFollowers)
 
+// GET /follows/suggested - Obtener usuarios sugeridos para seguir
+router.get('/suggested', followController.getSuggestedUsers)
+
 // GET /follows/:userId/check - Verificar si sigo a un usuario
 router.get('/:userId/check', followController.checkIfFollowing)
 

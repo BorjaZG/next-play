@@ -8,6 +8,10 @@ import BacklogDetail from './pages/BacklogDetail'
 import Lists from './pages/Lists'
 import ListDetail from './pages/ListDetail'
 import Profile from './pages/Profile'
+import Discover from './pages/Discover'
+import UserProfile from './pages/UserProfile'
+import Following from './pages/Following'
+import Followers from './pages/Followers'
 import PrivateRoute from './components/PrivateRoute'
 import Header from './components/layout/Header'
 
@@ -69,6 +73,15 @@ function App() {
         />
 
         <Route
+          path="/lists/:id"
+          element={
+            <PrivateRoute>
+              <ListDetail />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/profile"
           element={
             <PrivateRoute>
@@ -78,10 +91,37 @@ function App() {
         />
 
         <Route
-          path="/lists/:id"
+          path="/discover"
           element={
             <PrivateRoute>
-              <ListDetail />
+              <Discover />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/users/:id"
+          element={
+            <PrivateRoute>
+              <UserProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/following"
+          element={
+            <PrivateRoute>
+              <Following />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/followers"
+          element={
+            <PrivateRoute>
+              <Followers />
             </PrivateRoute>
           }
         />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { statsService } from '../services/stats.service'
 import { useBacklogStore } from '../store/backlogStore'
-import { Calendar, Award, Star, TrendingUp } from 'lucide-react'
+import { Calendar, Award, Star, TrendingUp, Users } from 'lucide-react'
 import Header from '../components/layout/Header'
 
 const achievementIcons = {
@@ -75,17 +75,28 @@ export default function Profile() {
             </div>
             <div>
               <h1 className="text-3xl font-bold mb-2">{user?.username}</h1>
-              <div className="flex items-center gap-4 text-white/80">
+              <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-sm">
-                    Miembro desde {new Date(user?.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                  <span>
+                    Miembro desde {user?.createdAt 
+                      ? new Date(user.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                      : 'hace poco'
+                    }
                   </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>{stats?.social?.followers || 0} seguidores</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>{stats?.social?.following || 0} siguiendo</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+      </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
