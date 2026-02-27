@@ -14,6 +14,7 @@ import Following from './pages/Following'
 import Followers from './pages/Followers'
 import PrivateRoute from './components/PrivateRoute'
 import Header from './components/layout/Header'
+import AIChat from './pages/AIChat'
 
 function App() {
   return (
@@ -29,6 +30,15 @@ function App() {
           element={
             <PrivateRoute>
               <Home />
+            </PrivateRoute>
+          }
+        />
+        
+        <Route
+          path="/ai-chat"
+          element={
+            <PrivateRoute>
+              <AIChat />
             </PrivateRoute>
           }
         />

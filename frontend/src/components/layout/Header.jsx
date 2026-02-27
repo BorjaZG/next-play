@@ -1,6 +1,6 @@
 import { useAuthStore } from '../../store/authStore'
 import { useNavigate, Link } from 'react-router-dom'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Sparkles } from 'lucide-react'
 
 export default function Header() {
   const { user, logout } = useAuthStore()
@@ -53,6 +53,13 @@ export default function Header() {
               className="text-gray-300 hover:text-white transition-colors"
             >
               Social
+            </Link>
+            <Link 
+              to="/ai-chat" 
+              className="text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <Sparkles className="w-4 h-4" />
+              IA
             </Link>
             <span className="text-gray-600 cursor-not-allowed">
               Estadísticas
