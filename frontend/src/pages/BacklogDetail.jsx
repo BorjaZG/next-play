@@ -74,8 +74,8 @@ export default function BacklogDetail() {
   const fetchItemDetails = async () => {
     setLoading(true)
     try {
-      const data = await backlogService.getAll()
-      const foundItem = data.items.find(i => i.id === parseInt(id))
+      const data = await backlogService.getById(id)
+      const foundItem = data.item
       if (!foundItem) { navigate('/backlog'); return }
 
       setItem(foundItem)
@@ -98,7 +98,7 @@ export default function BacklogDetail() {
       if (foundItem.externalId && foundItem.contentType) {
         followService.getItemReviews(foundItem.externalId, foundItem.contentType, 8)
           .then(d => setCommunityReviews((d.reviews || []).filter(r => r.user?.id !== user.id)))
-          .catch(() => {})
+          .catch(e => console.error(e))
       }
     } catch {
       navigate('/backlog')

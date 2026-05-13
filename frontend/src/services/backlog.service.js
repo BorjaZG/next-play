@@ -13,6 +13,12 @@ export const backlogService = {
     return response.data
   },
 
+  // Obtener un item por id
+  getById: async (id) => {
+    const response = await api.get(`/backlog/${id}`)
+    return response.data
+  },
+
   // Crear nuevo item
   create: async (itemData) => {
     const response = await api.post('/backlog', itemData)
