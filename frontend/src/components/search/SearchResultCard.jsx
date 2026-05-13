@@ -3,6 +3,7 @@ import { Plus, Check, X } from 'lucide-react'
 import { searchService } from '../../services/search.service'
 import { useBacklogStore } from '../../store/backlogStore'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 
 export default function SearchResultCard({ item }) {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ export default function SearchResultCard({ item }) {
         setAdded(true)
         setShowModal(false)
       } else {
-        alert(error.response?.data?.error || 'Error al añadir al backlog')
+        toast.error(error.response?.data?.error || 'Error al añadir al backlog')
       }
     } finally {
       setLoading(false)

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, Globe, Lock } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../hooks/useConfirm'
 import { listService } from '../services/list.service'
 import { backlogService } from '../services/backlog.service'
 import { useAuthStore } from '../store/authStore'
@@ -10,6 +12,7 @@ export default function ListDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const confirm = useConfirm()
   const [list, setList] = useState(null)
   const [backlogItems, setBacklogItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -47,10 +50,11 @@ export default function ListDetail() {
   }
 
   const handleRemoveItem = async (backlogItemId) => {
-    if (confirm('¿Eliminar este item de la lista?')) {
-      await listService.removeItem(id, backlogItemId)
-      fetchListDetails()
-    }
+    const ok = await confirm('¿Quitar este item de la lista?')
+    if (!ok) return
+    await listService.removeItem(id, backlogItemId)
+    fetchListDetails()
+    toast.success('Item eliminado de la lista')
   }
 
   const handleOpenAddModal = () => {

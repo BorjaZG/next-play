@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Send, Trash2, Sparkles, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../hooks/useConfirm'
 import { useChatStore } from '../store/chatStore'
 import Header from '../components/layout/Header'
 
@@ -13,6 +15,7 @@ const quickSuggestions = [
 
 export default function AIChat() {
   const { messages, loading, sendMessage, clearHistory, loadHistory } = useChatStore()
+  const confirm = useConfirm()
   const [input, setInput] = useState('')
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
@@ -21,13 +24,13 @@ export default function AIChat() {
     loadHistory()
   }, [])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -56,10 +59,11 @@ export default function AIChat() {
     }
   }
 
-  const handleClearHistory = () => {
-    if (confirm('¿Eliminar todo el historial de chat?')) {
-      clearHistory()
-    }
+  const handleClearHistory = async () => {
+    const ok = await confirm('¿Eliminar todo el historial del chat?')
+    if (!ok) return
+    clearHistory()
+    toast.success('Historial eliminado')
   }
 
   return (

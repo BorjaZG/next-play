@@ -35,12 +35,13 @@ const getTwitchToken = async () => {
 const searchGames = async (query, limit = 10) => {
   try {
     const token = await getTwitchToken()
+    const safeQuery = query.replace(/"/g, '\\"')
 
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
       `
-        search "${query}";
-        fields name, cover.url, first_release_date, summary, 
+        search "${safeQuery}";
+        fields name, cover.url, first_release_date, summary,
                genres.name, platforms.name, involved_companies.company.name,
                rating, rating_count;
         limit ${limit};
@@ -80,11 +81,13 @@ const searchGames = async (query, limit = 10) => {
 const getGameById = async (gameId) => {
   try {
     const token = await getTwitchToken()
+    const safeId = parseInt(gameId)
+    if (isNaN(safeId)) return null
 
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
       `
-        where id = ${gameId};
+        where id = ${safeId};
         fields name, cover.url, first_release_date, summary,
                genres.name, platforms.name, involved_companies.company.name,
                rating, rating_count, screenshots.url;

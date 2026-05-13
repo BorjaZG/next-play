@@ -1,7 +1,5 @@
-const { PrismaClient } = require('@prisma/client')
+const prisma = require('../lib/prisma')
 const achievementService = require('../services/achievement.service')
-
-const prisma = new PrismaClient()
 
 // Obtener estadísticas generales del usuario
 const getGeneralStats = async (req, res) => {

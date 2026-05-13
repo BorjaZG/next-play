@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+const prisma = require('../lib/prisma')
 
 // Obtener todas las listas del usuario autenticado
 const getMyLists = async (req, res) => {

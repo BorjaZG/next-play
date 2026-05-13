@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, Loader2, Plus, Check } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../hooks/useConfirm'
 import { backlogService } from '../services/backlog.service'
 import { searchService } from '../services/search.service'
 import { reviewService } from '../services/review.service'
@@ -52,6 +54,7 @@ export default function BacklogDetail() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { updateItemStatus, deleteItem, items: myBacklogItems } = useBacklogStore()
+  const confirm = useConfirm()
 
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -112,7 +115,7 @@ export default function BacklogDetail() {
 
   const handleProgressChange = async (val) => {
     setProgress(val)
-    try { await backlogService.update(item.id, { progress: val }) } catch {}
+    try { await backlogService.update(item.id, { progress: val }) } catch (e) { console.error(e) }
   }
 
   const handleSaveReview = async () => {
@@ -123,15 +126,16 @@ export default function BacklogDetail() {
       setHasReview(true)
       setReviewSaved(true)
       setTimeout(() => setReviewSaved(false), 3000)
-    } catch {}
+    } catch (e) { console.error(e) }
     finally { setSavingReview(false) }
   }
 
   const handleDelete = async () => {
-    if (confirm('¿Eliminar este item del backlog?')) {
-      await deleteItem(item.id)
-      navigate('/backlog')
-    }
+    const ok = await confirm(`¿Eliminar "${item.title}" del backlog?`)
+    if (!ok) return
+    await deleteItem(item.id)
+    toast.success('Item eliminado')
+    navigate('/backlog')
   }
 
   const handleAddToMyBacklog = async () => {

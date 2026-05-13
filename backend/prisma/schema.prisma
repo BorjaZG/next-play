@@ -42,6 +42,7 @@ model BacklogItem {
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviews Review[]
 
+  @@index([userId])
   @@map("backlog_items")
 }
 
@@ -58,6 +59,8 @@ model Review {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   backlogItem BacklogItem @relation(fields: [backlogItemId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([backlogItemId])
   @@map("reviews")
 }
 
@@ -86,6 +89,8 @@ model Follow {
   following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
   @@map("follows")
 }
 

@@ -1,20 +1,26 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserMinus } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../hooks/useConfirm'
 import { useSocialStore } from '../store/socialStore'
 import Header from '../components/layout/Header'
 
 export default function Following() {
   const navigate = useNavigate()
   const { following, followers, fetchFollowing, fetchFollowers, unfollowUser } = useSocialStore()
+  const confirm = useConfirm()
 
   useEffect(() => {
     fetchFollowing()
     fetchFollowers()
   }, [])
 
-  const handleUnfollow = async (userId) => {
-    if (confirm('¿Dejar de seguir a este usuario?')) await unfollowUser(userId)
+  const handleUnfollow = async (userId, username) => {
+    const ok = await confirm(`¿Dejar de seguir a ${username}?`)
+    if (!ok) return
+    await unfollowUser(userId)
+    toast.success(`Dejaste de seguir a ${username}`)
   }
 
   return (
@@ -53,7 +59,7 @@ export default function Following() {
                   <p className="text-sm font-semibold hover:text-primary-purple transition-colors">{user.username}</p>
                 </div>
                 <button
-                  onClick={() => handleUnfollow(user.id)}
+                  onClick={() => handleUnfollow(user.id, user.username)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-400 border border-dark-border hover:border-red-500/50 hover:bg-red-500/10 transition-colors"
                 >
                   <UserMinus className="w-3.5 h-3.5" />
