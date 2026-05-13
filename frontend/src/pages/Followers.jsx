@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, UserPlus } from 'lucide-react'
+import { UserPlus, UserCheck } from 'lucide-react'
 import { useSocialStore } from '../store/socialStore'
 import Header from '../components/layout/Header'
 
@@ -13,86 +13,52 @@ export default function Followers() {
     fetchFollowers()
   }, [])
 
-  const isFollowing = (userId) => {
-    return following.some(f => f.id === userId)
-  }
-
-  const handleFollowBack = async (userId) => {
-    await followUser(userId)
-  }
+  const isFollowing = (userId) => following.some(f => f.id === userId)
 
   return (
     <div className="min-h-screen bg-dark-bg">
       <Header />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-gray-800">
-          <button 
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <div className="flex gap-1 border-b border-dark-border mb-6">
+          <button
             onClick={() => navigate('/following')}
-            className="px-4 py-3 text-gray-400 hover:text-white transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-300 transition-colors"
           >
             Siguiendo ({following.length})
           </button>
-          <button className="px-4 py-3 border-b-2 border-primary-purple font-semibold">
+          <button className="px-4 py-2.5 text-sm font-medium text-white relative">
             Seguidores ({followers.length})
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-purple" />
           </button>
         </div>
 
-        {/* Followers list */}
         {followers.length === 0 ? (
-          <div className="text-center py-20">
-            <Users className="w-16 h-16 mx-auto text-gray-600 mb-4" />
-            <p className="text-gray-400 text-lg mb-4">
-              Aún no tienes seguidores
-            </p>
-            <p className="text-gray-500 text-sm">
-              Comparte contenido y sigue a otros usuarios para construir tu red
-            </p>
-          </div>
+          <div className="text-center py-16 text-gray-500 text-sm">Aún no tienes seguidores.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-2">
             {followers.map(user => (
-              <div key={user.id} className="card">
-                <div className="flex items-start gap-4 mb-4">
-                  <div 
-                    className="w-16 h-16 rounded-full bg-gradient-main flex items-center justify-center text-2xl font-bold flex-shrink-0 cursor-pointer"
-                    onClick={() => navigate(`/users/${user.id}`)}
-                  >
-                    {user.username.charAt(0).toUpperCase()}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h3 
-                      className="font-semibold text-lg cursor-pointer hover:text-primary-purple transition-colors truncate"
-                      onClick={() => navigate(`/users/${user.id}`)}
-                    >
-                      {user.username}
-                    </h3>
-                    <p className="text-sm text-gray-400">
-                      {user.email}
-                    </p>
-                  </div>
+              <div key={user.id} className="bg-dark-card border border-dark-border rounded-xl p-4 flex items-center gap-4 hover:border-gray-600 transition-colors">
+                <div
+                  className="w-10 h-10 rounded-full bg-gradient-main flex items-center justify-center text-base font-bold text-white flex-shrink-0 cursor-pointer"
+                  onClick={() => navigate(`/users/${user.id}`)}
+                >
+                  {user.username.charAt(0).toUpperCase()}
                 </div>
-
-                <div className="flex gap-2">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/users/${user.id}`)}>
+                  <p className="text-sm font-semibold hover:text-primary-purple transition-colors">{user.username}</p>
+                </div>
+                {isFollowing(user.id) ? (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-500 border border-dark-border">
+                    <UserCheck className="w-3.5 h-3.5" /> Siguiendo
+                  </span>
+                ) : (
                   <button
-                    onClick={() => navigate(`/users/${user.id}`)}
-                    className="flex-1 py-2 bg-dark-hover rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                    onClick={() => followUser(user.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-gradient-main text-white hover:opacity-90 transition-opacity"
                   >
-                    Ver perfil
+                    <UserPlus className="w-3.5 h-3.5" /> Seguir
                   </button>
-                  
-                  {!isFollowing(user.id) && (
-                    <button
-                      onClick={() => handleFollowBack(user.id)}
-                      className="flex-1 py-2 bg-gradient-main rounded-lg hover:opacity-90 transition-opacity text-sm flex items-center justify-center gap-2"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Seguir también
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
             ))}
           </div>

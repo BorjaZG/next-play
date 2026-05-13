@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Globe, Lock } from 'lucide-react'
 import { listService } from '../services/list.service'
 import { backlogService } from '../services/backlog.service'
+import { useAuthStore } from '../store/authStore'
 import Header from '../components/layout/Header'
 
 export default function ListDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [list, setList] = useState(null)
   const [backlogItems, setBacklogItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,7 +17,6 @@ export default function ListDetail() {
 
   useEffect(() => {
     fetchListDetails()
-    fetchBacklogItems()
   }, [id])
 
   const fetchListDetails = async () => {
@@ -24,7 +25,7 @@ export default function ListDetail() {
       setList(data.list)
     } catch (error) {
       console.error('Error:', error)
-      navigate('/lists')
+      navigate(-1)
     } finally {
       setLoading(false)
     }
@@ -33,7 +34,7 @@ export default function ListDetail() {
   const fetchBacklogItems = async () => {
     try {
       const data = await backlogService.getAll()
-      setBacklogItems(data.items)
+      setBacklogItems(data.items || [])
     } catch (error) {
       console.error('Error:', error)
     }
@@ -52,120 +53,141 @@ export default function ListDetail() {
     }
   }
 
+  const handleOpenAddModal = () => {
+    fetchBacklogItems()
+    setShowAddModal(true)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <p className="text-gray-400">Cargando...</p>
+        <p className="text-gray-500 text-sm">Cargando...</p>
       </div>
     )
   }
 
+  const isOwner = list?.userId === user?.id || list?.user?.id === user?.id
+
   return (
     <div className="min-h-screen bg-dark-bg">
       <Header />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <button
-          onClick={() => navigate('/lists')}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-gray-500 hover:text-white mb-6 transition-colors text-sm"
         >
-          <ArrowLeft className="w-5 h-5" />
-          Volver a listas
+          <ArrowLeft className="w-4 h-4" />
+          Volver
         </button>
 
-        <div className="flex justify-between items-start mb-8">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{list?.name}</h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold">{list?.name}</h1>
+              {list?.isPublic
+                ? <Globe className="w-4 h-4 text-primary-green" />
+                : <Lock className="w-4 h-4 text-gray-600" />
+              }
+            </div>
             {list?.description && (
-              <p className="text-gray-400">{list.description}</p>
+              <p className="text-gray-400 text-sm mb-1">{list.description}</p>
             )}
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs text-gray-500">
+              {list?.user?.username && !isOwner && (
+                <span>
+                  por <span
+                    className="text-gray-400 hover:text-white cursor-pointer"
+                    onClick={() => navigate(`/users/${list.user.id}`)}
+                  >{list.user.username}</span>
+                  {' · '}
+                </span>
+              )}
               {list?.fullItems?.length || 0} items
             </p>
           </div>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Añadir items
-          </button>
+          {isOwner && (
+            <button
+              onClick={handleOpenAddModal}
+              className="btn-primary flex items-center gap-1.5 flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              Añadir
+            </button>
+          )}
         </div>
 
+        {/* Items grid */}
         {list?.fullItems && list.fullItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2">
             {list.fullItems.map(item => (
-              <div key={item.id} className="card group relative">
-                <div className="relative h-64 overflow-hidden rounded-lg mb-4">
-                  {item.coverImage ? (
-                    <img 
-                      src={item.coverImage} 
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-dark-hover flex items-center justify-center">
-                      <span className="text-6xl">🎮</span>
-                    </div>
-                  )}
+              <div
+                key={item.id}
+                className="cover-card group"
+                onClick={() => navigate(`/backlog/${item.id}`)}
+              >
+                {item.coverImage ? (
+                  <img src={item.coverImage} alt={item.title} loading="lazy" />
+                ) : (
+                  <div className="w-full h-full bg-dark-elevated flex items-center justify-center text-2xl">
+                    {item.contentType === 'game' ? '🎮' : item.contentType === 'series' ? '📺' : item.contentType === 'anime' ? '✨' : '🎬'}
+                  </div>
+                )}
+                <div className="overlay">
+                  <p className="text-white text-xs font-semibold line-clamp-2 leading-tight">{item.title}</p>
                 </div>
-
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                
-                <button
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="absolute top-2 right-2 p-2 bg-red-500/10 backdrop-blur-sm rounded-lg hover:bg-red-500/20"
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id) }}
+                    className="absolute top-1 right-1 p-1 bg-black/70 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <Trash2 className="w-3 h-3 text-red-400" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <p className="text-gray-400 mb-4">Esta lista está vacía</p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary"
-            >
-              Añadir items
-            </button>
+          <div className="text-center py-16">
+            <p className="text-gray-500 text-sm mb-3">Esta lista está vacía.</p>
+            {isOwner && (
+              <button onClick={handleOpenAddModal} className="btn-primary">
+                Añadir items
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Modal añadir items */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-card rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-700">
-            <h3 className="text-xl font-bold mb-4">Añadir items de tu backlog</h3>
-            
-            <div className="space-y-2">
-              {backlogItems.map(item => (
+      {/* Modal añadir items — solo para el dueño */}
+      {showAddModal && isOwner && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-dark-card border border-dark-border rounded-xl max-w-md w-full max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-dark-border">
+              <h3 className="font-semibold text-sm">Añadir de tu backlog</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-white text-lg leading-none">&times;</button>
+            </div>
+            <div className="p-3 space-y-1">
+              {backlogItems.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center py-4">Tu backlog está vacío.</p>
+              ) : backlogItems.map(item => (
                 <button
                   key={item.id}
                   onClick={() => handleAddItem(item.id)}
-                  className="w-full flex items-center gap-4 p-3 bg-dark-hover rounded-lg hover:bg-gray-700 transition-colors"
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-dark-hover transition-colors text-left"
                 >
-                  {item.coverImage && (
-                    <img 
-                      src={item.coverImage} 
-                      alt={item.title}
-                      className="w-12 h-16 object-cover rounded"
-                    />
-                  )}
-                  <span className="text-left">{item.title}</span>
+                  <div className="w-8 h-12 flex-shrink-0 rounded overflow-hidden bg-dark-elevated">
+                    {item.coverImage
+                      ? <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-sm">🎮</div>
+                    }
+                  </div>
+                  <span className="text-sm text-gray-300 truncate">{item.title}</span>
                 </button>
               ))}
             </div>
-
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="w-full mt-4 py-3 bg-dark-hover rounded-lg hover:bg-gray-700"
-            >
-              Cerrar
-            </button>
           </div>
         </div>
       )}

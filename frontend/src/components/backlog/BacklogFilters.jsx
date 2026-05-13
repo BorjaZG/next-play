@@ -1,98 +1,70 @@
-import { Gamepad2, Tv, Clapperboard, Sparkles } from 'lucide-react'
 import { useBacklogStore } from '../../store/backlogStore'
 
-const contentTypes = [
-  { value: '', label: 'Todos', icon: null },
-  { value: 'game', label: 'Juegos', icon: Gamepad2 },
-  { value: 'series', label: 'Series', icon: Tv },
-  { value: 'anime', label: 'Anime', icon: Sparkles },
-  { value: 'movie', label: 'Películas', icon: Clapperboard },
+const types = [
+  { value: '', label: 'Todo' },
+  { value: 'game', label: '🎮 Juegos' },
+  { value: 'series', label: '📺 Series' },
+  { value: 'anime', label: '✨ Anime' },
+  { value: 'movie', label: '🎬 Películas' },
 ]
 
 const statuses = [
   { value: '', label: 'Todos' },
-  { value: 'pending', label: 'Pendientes' },
+  { value: 'pending', label: 'Pendiente' },
   { value: 'playing', label: 'En progreso' },
-  { value: 'completed', label: 'Completados' },
-  { value: 'abandoned', label: 'Abandonados' },
+  { value: 'completed', label: 'Completado' },
+  { value: 'abandoned', label: 'Abandonado' },
 ]
 
-const sortOptions = [
-  { value: 'createdAt', label: 'Fecha añadido' },
+const sorts = [
+  { value: 'createdAt', label: 'Más recientes' },
   { value: 'updatedAt', label: 'Última actualización' },
-  { value: 'title', label: 'Título (A-Z)' },
-  { value: 'priority', label: 'Prioridad' },
+  { value: 'title', label: 'Título A-Z' },
 ]
 
 export default function BacklogFilters() {
   const { filters, setFilters } = useBacklogStore()
 
   return (
-    <div className="bg-dark-card rounded-xl p-6 space-y-4">
-      <h3 className="font-semibold flex items-center gap-2">
-        <span>🔍</span>
-        Filtros
-      </h3>
-
-      {/* Content Type Filter */}
-      <div>
-        <label className="text-sm text-gray-400 mb-2 block">Tipo</label>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {contentTypes.map(type => {
-            const Icon = type.icon
-            return (
-              <button
-                key={type.value}
-                onClick={() => setFilters({ contentType: type.value })}
-                className={`p-3 rounded-lg border transition-colors flex items-center justify-center gap-2 ${
-                  filters.contentType === type.value
-                    ? 'bg-primary-purple/20 border-primary-purple text-white'
-                    : 'bg-dark-hover border-gray-700 text-gray-400 hover:border-gray-600'
-                }`}
-              >
-                {Icon && <Icon className="w-4 h-4" />}
-                <span className="text-sm">{type.label}</span>
-              </button>
-            )
-          })}
-        </div>
+    <div className="flex flex-wrap gap-3 items-center">
+      {/* Type filter */}
+      <div className="flex gap-1 bg-dark-elevated rounded-lg p-1">
+        {types.map(t => (
+          <button
+            key={t.value}
+            onClick={() => setFilters({ contentType: t.value })}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              (filters.contentType || '') === t.value
+                ? 'bg-dark-card text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Status Filter */}
-      <div>
-        <label className="text-sm text-gray-400 mb-2 block">Estado</label>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {statuses.map(status => (
-            <button
-              key={status.value}
-              onClick={() => setFilters({ status: status.value })}
-              className={`p-3 rounded-lg border transition-colors ${
-                filters.status === status.value
-                  ? 'bg-primary-purple/20 border-primary-purple text-white'
-                  : 'bg-dark-hover border-gray-700 text-gray-400 hover:border-gray-600'
-              }`}
-            >
-              <span className="text-sm">{status.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Status filter */}
+      <select
+        value={filters.status || ''}
+        onChange={(e) => setFilters({ status: e.target.value })}
+        className="bg-dark-elevated border border-dark-border text-gray-300 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-gray-500"
+      >
+        {statuses.map(s => (
+          <option key={s.value} value={s.value}>{s.label}</option>
+        ))}
+      </select>
 
       {/* Sort */}
-      <div>
-        <label className="text-sm text-gray-400 mb-2 block">Ordenar por</label>
-        <select
-          value={filters.orderBy}
-          onChange={(e) => setFilters({ orderBy: e.target.value })}
-          className="w-full bg-dark-hover border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-purple"
-        >
-          {sortOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <select
+        value={filters.orderBy || 'createdAt'}
+        onChange={(e) => setFilters({ orderBy: e.target.value })}
+        className="bg-dark-elevated border border-dark-border text-gray-300 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-gray-500"
+      >
+        {sorts.map(s => (
+          <option key={s.value} value={s.value}>{s.label}</option>
+        ))}
+      </select>
     </div>
   )
 }

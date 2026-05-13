@@ -11,11 +11,15 @@ export default {
           purple: '#A855F7',
           fuchsia: '#D946EF',
           orange: '#F97316',
+          green: '#00e054',
         },
         dark: {
-          bg: '#0F0F0F',
-          card: '#1A1A1A',
-          hover: '#2A2A2A',
+          bg: '#14181c',
+          card: '#1c2228',
+          hover: '#2c3440',
+          border: '#2c3440',
+          elevated: '#242c36',
+          elevated2: '#1e252e',
         }
       },
       backgroundImage: {

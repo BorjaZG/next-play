@@ -48,4 +48,28 @@ export const followService = {
     const response = await api.get('/follows/suggested')
     return response.data
   },
+
+  // Obtener reseñas públicas de otros usuarios
+  getPublicReviews: async (limit = 8) => {
+    const response = await api.get(`/social/reviews?limit=${limit}`)
+    return response.data
+  },
+
+  // Obtener listas públicas de otros usuarios
+  getPublicLists: async (limit = 6) => {
+    const response = await api.get(`/social/lists?limit=${limit}`)
+    return response.data
+  },
+
+  // Obtener estadísticas globales de un item concreto
+  getItemStats: async (externalId, contentType) => {
+    const response = await api.get(`/social/item-stats?externalId=${externalId}&contentType=${contentType}`)
+    return response.data
+  },
+
+  // Obtener reseñas de la comunidad para un item concreto
+  getItemReviews: async (externalId, contentType, limit = 8) => {
+    const response = await api.get(`/social/item-reviews?externalId=${externalId}&contentType=${contentType}&limit=${limit}`)
+    return response.data
+  },
 }

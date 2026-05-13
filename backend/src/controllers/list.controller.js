@@ -37,23 +37,28 @@ const getListById = async (req, res) => {
     const list = await prisma.list.findFirst({
       where: {
         id: parseInt(id),
-        userId: req.userId
+        OR: [
+          { userId: req.userId },
+          { isPublic: true }
+        ]
+      },
+      include: {
+        user: { select: { id: true, username: true } }
       }
     })
 
     if (!list) {
-      return res.status(404).json({ 
-        error: 'Lista no encontrada' 
+      return res.status(404).json({
+        error: 'Lista no encontrada'
       })
     }
 
     // Obtener los detalles completos de cada item en la lista
     const itemIds = list.items.map(item => item.backlogItemId)
-    
+
     const backlogItems = await prisma.backlogItem.findMany({
       where: {
-        id: { in: itemIds },
-        userId: req.userId
+        id: { in: itemIds }
       },
       include: {
         reviews: true

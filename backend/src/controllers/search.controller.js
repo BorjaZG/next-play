@@ -200,8 +200,82 @@ const addContentToBacklog = async (req, res) => {
   }
 }
 
+// Listar contenido paginado por tipo (browse mode)
+const browseContent = async (req, res) => {
+  try {
+    const { type } = req.params
+    const page = parseInt(req.query.page) || 1
+    const sortBy = req.query.sortBy || 'popularity'
+    const genreId = req.query.genre || null
+    const limit = 60
+
+    let results = []
+    let total = 0
+
+    if (type === 'game') {
+      const offset = (page - 1) * limit
+      const tmdbSort = sortBy === 'newest' ? 'newest' : sortBy === 'rating' ? 'rating' : 'popularity'
+      ;[results, total] = await Promise.all([
+        igdbService.browseGames(offset, limit, tmdbSort, genreId),
+        igdbService.countGames(genreId)
+      ])
+    } else if (type === 'movie') {
+      const tmdbSort = sortBy === 'newest' ? 'primary_release_date.desc' : sortBy === 'rating' ? 'vote_average.desc' : 'popularity.desc'
+      const data = await tmdbService.browseMovies(page, tmdbSort, genreId)
+      results = data.results
+      total = data.total
+    } else if (type === 'series') {
+      const tmdbSort = sortBy === 'newest' ? 'first_air_date.desc' : sortBy === 'rating' ? 'vote_average.desc' : 'popularity.desc'
+      const data = await tmdbService.browseSeries(page, tmdbSort, genreId)
+      results = data.results
+      total = data.total
+    } else if (type === 'anime') {
+      const tmdbSort = sortBy === 'newest' ? 'first_air_date.desc' : sortBy === 'rating' ? 'vote_average.desc' : 'popularity.desc'
+      const data = await tmdbService.browseAnime(page, tmdbSort, genreId)
+      results = data.results
+      total = data.total
+    } else {
+      return res.status(400).json({ error: 'Tipo inválido. Usa: game, series, movie, anime' })
+    }
+
+    res.json({
+      type,
+      page,
+      total,
+      totalPages: Math.ceil(total / limit),
+      results
+    })
+  } catch (error) {
+    console.error('Error en browseContent:', error)
+    res.status(500).json({ error: 'Error al listar contenido', message: error.message })
+  }
+}
+
+// Obtener géneros por tipo
+const getGenresByType = async (req, res) => {
+  try {
+    const { type } = req.params
+    let genres = []
+
+    if (type === 'game') {
+      genres = await igdbService.getGameGenres()
+    } else if (type === 'movie') {
+      genres = await tmdbService.getTMDBGenres('movie')
+    } else if (type === 'series' || type === 'anime') {
+      genres = await tmdbService.getTMDBGenres('tv')
+    }
+
+    res.json({ genres })
+  } catch (error) {
+    console.error('Error en getGenresByType:', error)
+    res.status(500).json({ error: 'Error al obtener géneros' })
+  }
+}
+
 module.exports = {
   searchContent,
   getContentDetails,
-  addContentToBacklog
+  addContentToBacklog,
+  browseContent,
+  getGenresByType
 }
