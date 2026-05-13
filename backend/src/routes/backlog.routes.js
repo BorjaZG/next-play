@@ -9,6 +9,9 @@ router.use(authMiddleware)
 // GET /backlog - Listar mi backlog (con filtros opcionales)
 router.get('/', backlogController.getMyBacklog)
 
+// GET /backlog/:id - Obtener un item específico
+router.get('/:id', backlogController.getItemById)
+
 // POST /backlog - Añadir item al backlog
 router.post('/', backlogController.addItem)
 

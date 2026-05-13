@@ -93,6 +93,31 @@ const addItem = async (req, res) => {
   }
 }
 
+// Obtener un item específico del backlog por id
+const getItemById = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const item = await prisma.backlogItem.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      },
+      include: { reviews: true }
+    })
+
+    if (!item) {
+      return res.status(404).json({ error: 'Item no encontrado' })
+    }
+
+    res.json({ item })
+
+  } catch (error) {
+    console.error('Error en getItemById:', error)
+    res.status(500).json({ error: 'Error al obtener el item' })
+  }
+}
+
 // Actualizar un item del backlog
 const updateItem = async (req, res) => {
   try {
@@ -229,6 +254,7 @@ const deleteItem = async (req, res) => {
 
 module.exports = {
   getMyBacklog,
+  getItemById,
   addItem,
   updateItem,
   updateStatus,
