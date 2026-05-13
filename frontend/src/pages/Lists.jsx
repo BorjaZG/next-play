@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Lock, Globe, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../hooks/useConfirm'
 import { useListStore } from '../store/listStore'
 import Header from '../components/layout/Header'
 
 export default function Lists() {
   const navigate = useNavigate()
   const { lists, loading, fetchLists, createList, deleteList } = useListStore()
+  const confirm = useConfirm()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -25,15 +28,17 @@ export default function Lists() {
     if (result.success) {
       setShowCreateModal(false)
       setFormData({ name: '', description: '', isPublic: true })
+      toast.success('Lista creada')
     } else {
-      alert(result.error)
+      toast.error(result.error)
     }
   }
 
-  const handleDelete = async (id) => {
-    if (confirm('¿Eliminar esta lista?')) {
-      await deleteList(id)
-    }
+  const handleDelete = async (id, name) => {
+    const ok = await confirm(`¿Eliminar la lista "${name}"?`)
+    if (!ok) return
+    await deleteList(id)
+    toast.success('Lista eliminada')
   }
 
   return (
@@ -93,7 +98,7 @@ export default function Lists() {
 
                 {/* Delete */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(list.id) }}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(list.id, list.name) }}
                   className="p-2 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />

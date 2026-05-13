@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 import { Search as SearchIcon, Loader2, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { searchService } from '../services/search.service'
 import SearchResultCard from '../components/search/SearchResultCard'
@@ -78,14 +77,12 @@ function Pagination({ page, totalPages, onChange }) {
 }
 
 export default function Search() {
-  const navigate = useNavigate()
   const [inputValue, setInputValue] = useState('')
   const [activeType, setActiveType] = useState('all')
 
   // Search mode
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
 
   // Browse mode
   const [browseResults, setBrowseResults] = useState([])
@@ -153,7 +150,6 @@ export default function Search() {
     clearTimeout(debounceRef.current)
     if (value.trim().length < 2) {
       setSearchResults([])
-      setSearchQuery('')
       return
     }
     setSearching(true)
@@ -162,8 +158,7 @@ export default function Search() {
         const type = activeType === 'all' ? 'all' : activeType
         const data = await searchService.search(value, type)
         setSearchResults(data.results || [])
-        setSearchQuery(value)
-      } catch {}
+      } catch (e) { console.error(e) }
       finally { setSearching(false) }
     }, 350)
   }

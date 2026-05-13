@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useBacklogStore } from '../../store/backlogStore'
 import { useNavigate } from 'react-router-dom'
 import { MoreVertical, Trash2, CheckCircle, Clock, Play, XCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '../../hooks/useConfirm'
 
 const statusConfig = {
   pending: { label: 'Pendiente', color: 'bg-yellow-500', dot: 'bg-yellow-500' },
@@ -23,6 +25,7 @@ function StarDisplay({ rating }) {
 export default function BacklogCard({ item }) {
   const navigate = useNavigate()
   const { updateItemStatus, deleteItem } = useBacklogStore()
+  const confirm = useConfirm()
   const [showMenu, setShowMenu] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -39,10 +42,11 @@ export default function BacklogCard({ item }) {
 
   const handleDelete = async (e) => {
     e.stopPropagation()
-    if (confirm('¿Eliminar este item del backlog?')) {
-      setLoading(true)
-      await deleteItem(item.id)
-    }
+    const ok = await confirm(`¿Eliminar "${item.title}" del backlog?`)
+    if (!ok) return
+    setLoading(true)
+    await deleteItem(item.id)
+    toast.success('Item eliminado')
   }
 
   return (

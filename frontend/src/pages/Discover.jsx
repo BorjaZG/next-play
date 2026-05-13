@@ -22,7 +22,7 @@ export default function Discover() {
     try {
       const data = await followService.getSuggestedUsers()
       setUsers(data.users)
-    } catch {}
+    } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
 

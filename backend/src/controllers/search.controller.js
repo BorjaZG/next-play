@@ -1,3 +1,4 @@
+const prisma = require('../lib/prisma')
 const igdbService = require('../services/igdb.service')
 const tmdbService = require('../services/tmdb.service')
 
@@ -152,10 +153,6 @@ const addContentToBacklog = async (req, res) => {
         error: 'Contenido no encontrado en la API externa' 
       })
     }
-
-    // Crear el item en el backlog
-    const { PrismaClient } = require('@prisma/client')
-    const prisma = new PrismaClient()
 
     // Verificar si ya existe en el backlog
     const existingItem = await prisma.backlogItem.findFirst({

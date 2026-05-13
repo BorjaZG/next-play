@@ -79,7 +79,7 @@ function RatingBar({ count, maxCount }) {
 export default function ItemDetail() {
   const { type, id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user: _user } = useAuthStore()
   const { items: backlogItems, fetchItems } = useBacklogStore()
 
   const [item, setItem] = useState(null)
@@ -128,14 +128,14 @@ export default function ItemDetail() {
     try {
       const data = await followService.getItemStats(id, type)
       setStats(data)
-    } catch {}
+    } catch (e) { console.error(e) }
   }
 
   const fetchReviews = async () => {
     try {
       const data = await followService.getItemReviews(id, type, 8)
       setReviews(data.reviews || [])
-    } catch {}
+    } catch (e) { console.error(e) }
   }
 
   const openModal = () => {

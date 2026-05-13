@@ -236,7 +236,7 @@ export default function Statistics() {
                 Mejor valorados
               </h2>
               <div className="space-y-3">
-                {topRated.map((item, index) => {
+                {topRated.map((item) => {
                   const Icon = TYPE_ICONS[item.contentType] || Gamepad2
                   return (
                     <div key={item.id} className="flex items-center gap-3 p-3 bg-dark-elevated rounded-lg">

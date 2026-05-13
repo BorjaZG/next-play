@@ -1,7 +1,5 @@
-const { PrismaClient } = require('@prisma/client')
+const prisma = require('../lib/prisma')
 const aiService = require('../services/ai.service')
-
-const prisma = new PrismaClient()
 
 // Obtener recomendaciones personalizadas
 const getRecommendations = async (req, res) => {
