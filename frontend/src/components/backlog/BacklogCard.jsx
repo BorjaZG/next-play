@@ -1,33 +1,23 @@
 import { useState } from 'react'
-import { Gamepad2, Tv, Clapperboard, Sparkles, MoreVertical, Trash2, Edit } from 'lucide-react'
 import { useBacklogStore } from '../../store/backlogStore'
 import { useNavigate } from 'react-router-dom'
+import { MoreVertical, Trash2, CheckCircle, Clock, Play, XCircle } from 'lucide-react'
 
-const typeIcons = {
-  game: Gamepad2,
-  series: Tv,
-  movie: Clapperboard,
-  anime: Sparkles,
+const statusConfig = {
+  pending: { label: 'Pendiente', color: 'bg-yellow-500', dot: 'bg-yellow-500' },
+  playing: { label: 'En progreso', color: 'bg-blue-500', dot: 'bg-blue-500' },
+  completed: { label: 'Completado', color: 'bg-primary-green', dot: 'bg-primary-green' },
+  abandoned: { label: 'Abandonado', color: 'bg-red-500', dot: 'bg-red-500' },
 }
 
-const statusColors = {
-  pending: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
-  playing: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
-  completed: 'bg-green-500/20 text-green-500 border-green-500/30',
-  abandoned: 'bg-red-500/20 text-red-500 border-red-500/30',
-}
-
-const statusLabels = {
-  pending: 'Pendiente',
-  playing: 'En progreso',
-  completed: 'Completado',
-  abandoned: 'Abandonado',
-}
-
-const priorityColors = {
-  low: 'bg-gray-500/20 text-gray-400',
-  medium: 'bg-blue-500/20 text-blue-400',
-  high: 'bg-primary-orange/20 text-primary-orange',
+function StarDisplay({ rating }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} className={`text-xs ${i <= rating ? 'star-filled' : 'star-empty'}`}>★</span>
+      ))}
+    </div>
+  )
 }
 
 export default function BacklogCard({ item }) {
@@ -36,171 +26,109 @@ export default function BacklogCard({ item }) {
   const [showMenu, setShowMenu] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const TypeIcon = typeIcons[item.contentType] || Gamepad2
+  const status = statusConfig[item.status] || statusConfig.pending
+  const review = item.reviews?.[0]
 
-  const handleStatusChange = async (newStatus) => {
+  const handleStatusChange = async (newStatus, e) => {
+    e.stopPropagation()
     setLoading(true)
     await updateItemStatus(item.id, newStatus)
     setLoading(false)
     setShowMenu(false)
   }
 
-  const handleDelete = async () => {
+  const handleDelete = async (e) => {
+    e.stopPropagation()
     if (confirm('¿Eliminar este item del backlog?')) {
       setLoading(true)
       await deleteItem(item.id)
     }
   }
 
-  const handleCardClick = (e) => {
-    // No navegar si se hace click en el menú
-    if (e.target.closest('.menu-button')) return
-    navigate(`/backlog/${item.id}`)
-  }
-
   return (
-    <div 
-      onClick={handleCardClick}
-      className="card group cursor-pointer relative overflow-hidden"
-    >
-      {/* Image */}
-      <div className="relative h-64 overflow-hidden rounded-lg mb-4">
+    <div className="group relative">
+      {/* Cover */}
+      <div
+        className="cover-card"
+        onClick={() => navigate(`/backlog/${item.id}`)}
+      >
         {item.coverImage ? (
-          <img 
-            src={item.coverImage} 
-            alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          <img src={item.coverImage} alt={item.title} loading="lazy" />
         ) : (
-          <div className="w-full h-full bg-dark-hover flex items-center justify-center">
-            <TypeIcon className="w-16 h-16 text-gray-600" />
+          <div className="w-full h-full bg-dark-elevated flex items-center justify-center text-4xl">
+            {item.contentType === 'game' ? '🎮' : item.contentType === 'series' ? '📺' : item.contentType === 'anime' ? '✨' : '🎬'}
           </div>
         )}
-        
+
+        {/* Status dot */}
+        <div className={`absolute top-2 left-2 w-2.5 h-2.5 rounded-full ${status.dot} ring-2 ring-dark-bg`} title={status.label} />
+
         {/* Progress bar */}
         {item.progress > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-2 bg-black/50">
-            <div 
-              className="h-full bg-gradient-main"
-              style={{ width: `${item.progress}%` }}
-            />
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
+            <div className="h-full bg-primary-green" style={{ width: `${item.progress}%` }} />
           </div>
         )}
-      </div>
 
-      {/* Content */}
-      <div className="space-y-3">
-        {/* Title & Type */}
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-lg line-clamp-2 flex-1">
-            {item.title}
-          </h3>
-          <TypeIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+        {/* Hover overlay */}
+        <div className="overlay">
+          <p className="text-white text-xs font-semibold line-clamp-2 leading-tight mb-1">{item.title}</p>
+          {review && <StarDisplay rating={review.rating} />}
         </div>
 
-        {/* Status & Priority */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs px-2 py-1 rounded-full border ${statusColors[item.status]}`}>
-            {statusLabels[item.status]}
-          </span>
-          
-          {item.priority !== 'medium' && (
-            <span className={`text-xs px-2 py-1 rounded-full ${priorityColors[item.priority]}`}>
-              {item.priority === 'high' ? 'Alta' : 'Baja'} prioridad
-            </span>
-          )}
-
-          {item.progress > 0 && (
-            <span className="text-xs text-gray-400">
-              {item.progress}%
-            </span>
-          )}
-        </div>
-
-        {/* Rating */}
-        {item.reviews && item.reviews.length > 0 && (
-          <div className="flex items-center gap-1">
-            <span className="text-yellow-500">★</span>
-            <span className="text-sm text-gray-300">
-              {item.reviews[0].rating}/5
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Menu button */}
-      <div className="absolute top-4 right-4 menu-button">
+        {/* Menu button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowMenu(!showMenu)
-          }}
-          className="bg-black/60 backdrop-blur-sm p-2 rounded-lg hover:bg-black/80 transition-colors"
+          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
+          className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <MoreVertical className="w-5 h-5" />
+          <MoreVertical className="w-3.5 h-3.5" />
         </button>
 
-        {/* Dropdown menu */}
+        {/* Dropdown */}
         {showMenu && (
-          <div className="absolute top-12 right-0 bg-dark-card border border-gray-700 rounded-lg shadow-xl z-10 min-w-[180px]">
-            <div className="p-2 space-y-1">
-              <p className="text-xs text-gray-400 px-3 py-1">Cambiar estado</p>
-              
-              {['pending', 'playing', 'completed', 'abandoned'].map(status => (
+          <>
+            <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowMenu(false) }} />
+            <div className="absolute top-8 right-2 bg-dark-card border border-dark-border rounded-lg shadow-xl z-20 min-w-[160px] py-1">
+              <p className="text-xs text-gray-500 px-3 py-1.5">Cambiar estado</p>
+              {Object.entries(statusConfig).map(([s, cfg]) => (
                 <button
-                  key={status}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleStatusChange(status)
-                  }}
-                  disabled={loading || item.status === status}
-                  className={`w-full text-left px-3 py-2 rounded hover:bg-dark-hover transition-colors text-sm
-                    ${item.status === status ? 'opacity-50 cursor-not-allowed' : ''}
-                  `}
+                  key={s}
+                  onClick={(e) => handleStatusChange(s, e)}
+                  disabled={loading || item.status === s}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-dark-hover transition-colors flex items-center gap-2 ${item.status === s ? 'text-gray-500 cursor-default' : 'text-gray-300'}`}
                 >
-                  {statusLabels[status]}
+                  <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
                 </button>
               ))}
-
-              <div className="border-t border-gray-700 my-1" />
-              
+              <div className="border-t border-dark-border my-1" />
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/backlog/${item.id}`)
-                }}
-                className="w-full text-left px-3 py-2 rounded hover:bg-dark-hover transition-colors text-sm flex items-center gap-2"
-              >
-                <Edit className="w-4 h-4" />
-                Ver detalles
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDelete()
-                }}
+                onClick={handleDelete}
                 disabled={loading}
-                className="w-full text-left px-3 py-2 rounded hover:bg-red-500/10 transition-colors text-sm text-red-500 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-dark-hover transition-colors flex items-center gap-2"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3 h-3" />
                 Eliminar
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
 
-      {/* Click outside to close menu */}
-      {showMenu && (
-        <div 
-          className="fixed inset-0 z-0"
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowMenu(false)
-          }}
-        />
-      )}
+      {/* Title below cover */}
+      <div className="mt-1.5 px-0.5">
+        <p
+          className="text-xs text-gray-300 line-clamp-1 cursor-pointer hover:text-white transition-colors"
+          onClick={() => navigate(`/backlog/${item.id}`)}
+        >
+          {item.title}
+        </p>
+        {review && (
+          <div className="mt-0.5">
+            <StarDisplay rating={review.rating} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

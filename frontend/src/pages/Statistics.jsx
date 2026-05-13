@@ -63,7 +63,7 @@ export default function Statistics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <p className="text-gray-400">Cargando estadísticas...</p>
+        <p className="text-gray-600 text-sm">Cargando estadísticas...</p>
       </div>
     )
   }
@@ -88,43 +88,23 @@ export default function Statistics() {
       <Header />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Estadísticas</h1>
-          <p className="text-gray-400">
-            Análisis completo de tu backlog y actividad
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold">Estadísticas</h1>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="card text-center">
-            <div className="text-primary-purple text-4xl mb-2">
-              {stats?.backlog?.total || 0}
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+          {[
+            { label: 'Total', value: stats?.backlog?.total || 0, color: 'text-gray-300' },
+            { label: 'Completados', value: stats?.backlog?.completed || 0, color: 'text-primary-green' },
+            { label: 'Rating medio', value: stats?.reviews?.averageRating || 0, color: 'text-yellow-400' },
+            { label: 'Tasa finalización', value: `${stats?.backlog?.completionRate || 0}%`, color: 'text-blue-400' },
+          ].map(s => (
+            <div key={s.label} className="bg-dark-card border border-dark-border rounded-lg p-4 text-center">
+              <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
             </div>
-            <p className="text-gray-400">Total items</p>
-          </div>
-
-          <div className="card text-center">
-            <div className="text-green-500 text-4xl mb-2">
-              {stats?.backlog?.completed || 0}
-            </div>
-            <p className="text-gray-400">Completados</p>
-          </div>
-
-          <div className="card text-center">
-            <div className="text-yellow-500 text-4xl mb-2">
-              {stats?.reviews?.averageRating || 0}
-            </div>
-            <p className="text-gray-400">Rating medio</p>
-          </div>
-
-          <div className="card text-center">
-            <div className="text-blue-500 text-4xl mb-2">
-              {stats?.backlog?.completionRate || 0}%
-            </div>
-            <p className="text-gray-400">Tasa finalización</p>
-          </div>
+          ))}
         </div>
 
         {/* Charts Grid */}
@@ -138,11 +118,11 @@ export default function Statistics() {
               </h2>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={activity}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2c3440" />
+                  <XAxis dataKey="month" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
+                    contentStyle={{ backgroundColor: '#1c2228', border: '1px solid #2c3440' }}
                     labelStyle={{ color: '#F3F4F6' }}
                   />
                   <Legend />
@@ -176,7 +156,7 @@ export default function Statistics() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
+                    contentStyle={{ backgroundColor: '#1c2228', border: '1px solid #2c3440' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -188,11 +168,11 @@ export default function Statistics() {
             <h2 className="text-xl font-bold mb-6">Estado del backlog</h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={statusData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="name" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#2c3440" />
+                <XAxis dataKey="name" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
+                  contentStyle={{ backgroundColor: '#1c2228', border: '1px solid #2c3440' }}
                   labelStyle={{ color: '#F3F4F6' }}
                 />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
@@ -213,7 +193,7 @@ export default function Statistics() {
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-gray-300">{genre.genre}</span>
                     <div className="flex items-center gap-3">
-                      <div className="w-32 h-2 bg-dark-hover rounded-full overflow-hidden">
+                      <div className="w-32 h-1.5 bg-dark-elevated rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-main"
                           style={{ width: `${(genre.count / topGenres[0].count) * 100}%` }}
@@ -236,7 +216,7 @@ export default function Statistics() {
               <h2 className="text-xl font-bold mb-6">Top desarrolladores/estudios</h2>
               <div className="space-y-3">
                 {topDevelopers.slice(0, 6).map((dev, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-dark-hover rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-dark-elevated rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl font-bold text-primary-purple">#{index + 1}</span>
                       <span className="text-gray-300">{dev.developer}</span>
@@ -259,7 +239,7 @@ export default function Statistics() {
                 {topRated.map((item, index) => {
                   const Icon = TYPE_ICONS[item.contentType] || Gamepad2
                   return (
-                    <div key={item.id} className="flex items-center gap-3 p-3 bg-dark-hover rounded-lg">
+                    <div key={item.id} className="flex items-center gap-3 p-3 bg-dark-elevated rounded-lg">
                       <div className="w-12 h-16 bg-dark-bg rounded overflow-hidden flex-shrink-0">
                         {item.coverImage ? (
                           <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />

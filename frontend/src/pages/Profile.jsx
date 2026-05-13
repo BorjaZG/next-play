@@ -1,320 +1,262 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { statsService } from '../services/stats.service'
-import { useBacklogStore } from '../store/backlogStore'
-import { Calendar, Award, Star, TrendingUp, Users } from 'lucide-react'
+import { backlogService } from '../services/backlog.service'
 import Header from '../components/layout/Header'
 
 const achievementIcons = {
-  first_item: '🎮',
-  first_completion: '✅',
-  completionist_10: '🏆',
-  completionist_20: '💎',
-  marathonist: '📺',
-  gamer_pro: '🎯',
-  otaku: '✨',
-  first_review: '⭐',
-  reviewer: '📝',
-  first_list: '📋',
-  social: '👥',
-  popular: '🌟',
+  first_item: '🎮', first_completion: '✅', completionist_10: '🏆',
+  completionist_20: '💎', marathonist: '📺', gamer_pro: '🎯',
+  otaku: '✨', first_review: '⭐', reviewer: '📝',
+  first_list: '📋', social: '👥', popular: '🌟',
+}
+
+const TABS = ['Backlog', 'Reseñas', 'Logros']
+
+function Stars({ rating }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} className={`text-xs ${i <= rating ? 'star-filled' : 'star-empty'}`}>★</span>
+      ))}
+    </div>
+  )
 }
 
 export default function Profile() {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { getStats } = useBacklogStore()
+  const [activeTab, setActiveTab] = useState('Backlog')
   const [stats, setStats] = useState(null)
   const [achievements, setAchievements] = useState(null)
-  const [topRated, setTopRated] = useState([])
+  const [backlogItems, setBacklogItems] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchProfileData()
+    fetchData()
   }, [])
 
-  const fetchProfileData = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const [generalStats, achievementsData, topRatedData] = await Promise.all([
+      const [generalStats, achievementsData, backlogData] = await Promise.all([
         statsService.getGeneral(),
         statsService.getAchievements(),
-        statsService.getTopRated(5),
+        backlogService.getAll(),
       ])
-
       setStats(generalStats)
       setAchievements(achievementsData)
-      setTopRated(topRatedData.topRated)
-    } catch (error) {
-      console.error('Error cargando perfil:', error)
+      setBacklogItems(backlogData.items || [])
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-  const backlogStats = getStats()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <p className="text-gray-400">Cargando perfil...</p>
-      </div>
-    )
-  }
+  const reviewedItems = backlogItems.filter(i => i.reviews?.length > 0)
 
   return (
     <div className="min-h-screen bg-dark-bg">
       <Header />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header con avatar y nombre */}
-        <div className="bg-gradient-main rounded-xl p-8 mb-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="relative z-10 flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-4xl font-bold">
-              {user?.username?.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{user?.username}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    Miembro desde {user?.createdAt 
-                      ? new Date(user.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-                      : 'hace poco'
-                    }
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>{stats?.social?.followers || 0} seguidores</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>{stats?.social?.following || 0} siguiendo</span>
-                </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        {/* Profile header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5 mb-8 pb-8 border-b border-dark-border">
+          {/* Avatar */}
+          <div className="w-20 h-20 rounded-full bg-gradient-main flex items-center justify-center text-3xl font-bold text-white flex-shrink-0">
+            {user?.username?.charAt(0).toUpperCase()}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold">{user?.username}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Miembro desde {user?.createdAt
+                ? new Date(user.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                : 'hace poco'}
+            </p>
+
+            {/* Stats row */}
+            <div className="flex flex-wrap gap-5 mt-3 text-sm">
+              <div className="text-center">
+                <div className="font-bold text-white">{stats?.backlog?.total ?? '-'}</div>
+                <div className="text-xs text-gray-500">Items</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-primary-green">{stats?.backlog?.completed ?? '-'}</div>
+                <div className="text-xs text-gray-500">Completados</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-yellow-400">{stats?.reviews?.averageRating ?? '-'}</div>
+                <div className="text-xs text-gray-500">Valoración media</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-gray-300">{stats?.social?.followers ?? '-'}</div>
+                <div className="text-xs text-gray-500">Seguidores</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-gray-300">{stats?.social?.following ?? '-'}</div>
+                <div className="text-xs text-gray-500">Siguiendo</div>
               </div>
             </div>
-          </div>
-      </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="card text-center">
-            <div className="text-primary-purple text-4xl mb-2">
-              {stats?.backlog.total || 0}
-            </div>
-            <p className="text-gray-400 text-sm">Total items</p>
-          </div>
-          
-          <div className="card text-center">
-            <div className="text-green-500 text-4xl mb-2">
-              {stats?.backlog.completed || 0}
-            </div>
-            <p className="text-gray-400 text-sm">Completados</p>
-          </div>
-          
-          <div className="card text-center">
-            <div className="text-yellow-500 text-4xl mb-2">
-              {stats?.reviews.averageRating || 0}
-            </div>
-            <p className="text-gray-400 text-sm">Valoración media</p>
-          </div>
-          
-          <div className="card text-center">
-            <div className="text-blue-500 text-4xl mb-2">
-              {stats?.backlog.completionRate || 0}%
-            </div>
-            <p className="text-gray-400 text-sm">Tasa de finalización</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Achievements */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Award className="w-6 h-6 text-primary-purple" />
-                Logros
-              </h2>
-              <span className="text-sm text-gray-400">
-                {achievements?.unlockedCount || 0} / {achievements?.totalAchievements || 12}
-              </span>
-            </div>
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-dark-border mb-6">
+          {TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+                activeTab === tab
+                  ? 'text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-purple" />
+              )}
+            </button>
+          ))}
+        </div>
 
-            {/* Progress bar */}
-            <div className="mb-6">
-              <div className="h-2 bg-dark-hover rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-main transition-all duration-500"
-                  style={{ width: `${achievements?.progress || 0}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                {achievements?.progress || 0}% completado
-              </p>
-            </div>
-
-            {/* Achievements grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {achievements?.unlocked.map(achievement => (
-                <div
-                  key={achievement.id}
-                  className="bg-dark-hover rounded-lg p-4 text-center"
-                >
-                  <div className="text-3xl mb-2">
-                    {achievementIcons[achievement.type] || '🏅'}
-                  </div>
-                  <h4 className="font-semibold text-sm mb-1">
-                    {achievement.title}
-                  </h4>
-                  <p className="text-xs text-gray-500">
-                    {achievement.description}
-                  </p>
-                </div>
-              ))}
-              
-              {/* Locked achievements */}
-              {Array.from({ length: (achievements?.totalAchievements || 12) - (achievements?.unlockedCount || 0) }).map((_, index) => (
-                <div
-                  key={`locked-${index}`}
-                  className="bg-dark-hover rounded-lg p-4 text-center opacity-30"
-                >
-                  <div className="text-3xl mb-2">🔒</div>
-                  <h4 className="font-semibold text-sm mb-1">???</h4>
-                  <p className="text-xs text-gray-500">Bloqueado</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Desglose y Favoritos */}
-          <div className="space-y-8">
-            {/* Estado del backlog */}
-            <div className="card">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-primary-purple" />
-                Desglose
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-green-500">Completados</span>
-                    <span className="font-semibold">{stats?.backlog.completed || 0}</span>
-                  </div>
-                  <div className="h-2 bg-dark-hover rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500"
-                      style={{ 
-                        width: `${stats?.backlog.total > 0 
-                          ? (stats.backlog.completed / stats.backlog.total * 100) 
-                          : 0}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-blue-500">En progreso</span>
-                    <span className="font-semibold">{stats?.backlog.playing || 0}</span>
-                  </div>
-                  <div className="h-2 bg-dark-hover rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500"
-                      style={{ 
-                        width: `${stats?.backlog.total > 0 
-                          ? (stats.backlog.playing / stats.backlog.total * 100) 
-                          : 0}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-yellow-500">Pendientes</span>
-                    <span className="font-semibold">{stats?.backlog.pending || 0}</span>
-                  </div>
-                  <div className="h-2 bg-dark-hover rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-yellow-500"
-                      style={{ 
-                        width: `${stats?.backlog.total > 0 
-                          ? (stats.backlog.pending / stats.backlog.total * 100) 
-                          : 0}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-gray-800">
-                <div className="text-center">
-                  <p className="text-sm text-gray-400 mb-1">Tasa de finalización</p>
-                  <p className="text-3xl font-bold text-primary-purple">
-                    {stats?.backlog.completionRate || 0}%
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {stats?.backlog.completed || 0} de {stats?.backlog.total || 0} items completados
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Favoritos */}
-            <div className="card">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <Star className="w-6 h-6 text-primary-purple" />
-                Favoritos
-              </h2>
-              
-              {topRated.length > 0 ? (
-                <div className="space-y-3">
-                  {topRated.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 p-3 bg-dark-hover rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-                    >
-                      <div className="flex-shrink-0 w-12 h-16 bg-dark-bg rounded overflow-hidden">
-                        {item.coverImage ? (
-                          <img 
-                            src={item.coverImage} 
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl">
-                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm truncate">
-                          {item.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 capitalize">
-                          {item.contentType}
-                        </p>
-                      </div>
-                      
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        <Star className="w-4 h-4 fill-yellow-500" />
-                        <span className="font-semibold">{item.rating}</span>
-                      </div>
+        {loading ? (
+          <div className="py-24 text-center text-gray-600">Cargando...</div>
+        ) : (
+          <>
+            {/* Tab: Backlog */}
+            {activeTab === 'Backlog' && (
+              <div>
+                {/* Status breakdown */}
+                <div className="grid grid-cols-4 gap-3 mb-6">
+                  {[
+                    { label: 'Total', value: stats?.backlog?.total ?? 0, color: 'text-gray-300' },
+                    { label: 'Pendiente', value: stats?.backlog?.pending ?? 0, color: 'text-yellow-400' },
+                    { label: 'En progreso', value: stats?.backlog?.playing ?? 0, color: 'text-blue-400' },
+                    { label: 'Completado', value: stats?.backlog?.completed ?? 0, color: 'text-primary-green' },
+                  ].map(s => (
+                    <div key={s.label} className="bg-dark-card border border-dark-border rounded-lg p-3 text-center">
+                      <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>Aún no has valorado ningún item</p>
+
+                {backlogItems.length === 0 ? (
+                  <div className="text-center py-16">
+                    <p className="text-gray-500 text-sm mb-3">Tu backlog está vacío.</p>
+                    <button onClick={() => navigate('/search')} className="btn-primary">Buscar contenido</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                    {backlogItems.map(item => (
+                      <div
+                        key={item.id}
+                        className="cover-card"
+                        onClick={() => navigate(`/backlog/${item.id}`)}
+                      >
+                        {item.coverImage ? (
+                          <img src={item.coverImage} alt={item.title} loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full bg-dark-elevated flex items-center justify-center text-3xl">
+                            {item.contentType === 'game' ? '🎮' : item.contentType === 'series' ? '📺' : item.contentType === 'anime' ? '✨' : '🎬'}
+                          </div>
+                        )}
+                        <div className="overlay">
+                          <p className="text-white text-xs font-semibold line-clamp-2 leading-tight mb-1">{item.title}</p>
+                          {item.reviews?.[0] && <Stars rating={item.reviews[0].rating} />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Reseñas */}
+            {activeTab === 'Reseñas' && (
+              <div>
+                {reviewedItems.length === 0 ? (
+                  <div className="text-center py-16 text-gray-500 text-sm">
+                    Aún no has escrito ninguna reseña.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reviewedItems.map(item => {
+                      const review = item.reviews[0]
+                      return (
+                        <div
+                          key={item.id}
+                          className="bg-dark-card border border-dark-border rounded-xl p-4 hover:border-gray-600 transition-colors cursor-pointer"
+                          onClick={() => navigate(`/backlog/${item.id}`)}
+                        >
+                          <div className="flex gap-4">
+                            <div className="w-14 flex-shrink-0 rounded overflow-hidden">
+                              {item.coverImage ? (
+                                <img src={item.coverImage} alt={item.title} className="w-full aspect-[2/3] object-cover" />
+                              ) : (
+                                <div className="w-full aspect-[2/3] bg-dark-elevated flex items-center justify-center text-xl">🎮</div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm mb-1">{item.title}</h4>
+                              <Stars rating={review.rating} />
+                              {review.reviewText && (
+                                <p className="text-gray-400 text-sm mt-2 line-clamp-3 leading-relaxed">
+                                  {review.reviewText}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Logros */}
+            {activeTab === 'Logros' && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-gray-500">
+                    {achievements?.unlockedCount ?? 0} / {achievements?.totalAchievements ?? 12} desbloqueados
+                  </p>
+                  <div className="flex items-center gap-2 w-48">
+                    <div className="flex-1 h-1.5 bg-dark-elevated rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-main"
+                        style={{ width: `${achievements?.progress ?? 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500">{achievements?.progress ?? 0}%</span>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {achievements?.unlocked?.map(a => (
+                    <div key={a.id} className="bg-dark-card border border-dark-border rounded-xl p-4 text-center">
+                      <div className="text-3xl mb-2">{achievementIcons[a.type] || '🏅'}</div>
+                      <h4 className="font-semibold text-sm mb-0.5">{a.title}</h4>
+                      <p className="text-xs text-gray-500">{a.description}</p>
+                    </div>
+                  ))}
+                  {Array.from({ length: (achievements?.totalAchievements ?? 12) - (achievements?.unlockedCount ?? 0) }).map((_, i) => (
+                    <div key={`locked-${i}`} className="bg-dark-card border border-dark-border rounded-xl p-4 text-center opacity-30">
+                      <div className="text-3xl mb-2">🔒</div>
+                      <h4 className="font-semibold text-sm mb-0.5">???</h4>
+                      <p className="text-xs text-gray-500">Bloqueado</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

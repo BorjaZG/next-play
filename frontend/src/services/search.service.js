@@ -24,4 +24,18 @@ export const searchService = {
     const response = await api.post(`/search/${type}/${externalId}/add`, data)
     return response.data
   },
+
+  // Listar contenido paginado (browse mode)
+  browse: async (type, page = 1, sortBy = 'popularity', genre = null) => {
+    const params = new URLSearchParams({ page, sortBy })
+    if (genre) params.append('genre', genre)
+    const response = await api.get(`/search/browse/${type}?${params.toString()}`)
+    return response.data
+  },
+
+  // Obtener géneros por tipo
+  getGenres: async (type) => {
+    const response = await api.get(`/search/genres/${type}`)
+    return response.data
+  },
 }

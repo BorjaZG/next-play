@@ -1,26 +1,50 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, Loader2, Calendar, Users, Plus } from 'lucide-react'
+import { ArrowLeft, Trash2, Loader2, Plus, Check } from 'lucide-react'
 import { backlogService } from '../services/backlog.service'
 import { searchService } from '../services/search.service'
 import { reviewService } from '../services/review.service'
+import { followService } from '../services/follow.service'
 import { useBacklogStore } from '../store/backlogStore'
 import { useAuthStore } from '../store/authStore'
-import StarRating from '../components/common/StarRating'
 import Header from '../components/layout/Header'
 
-const statusLabels = {
-  pending: 'Pendiente',
-  playing: 'En progreso',
-  completed: 'Completado',
-  abandoned: 'Abandonado',
+const STATUS_CONFIG = {
+  pending:   { label: 'Pendiente',   dot: 'bg-yellow-400', text: 'text-yellow-400',  border: 'border-yellow-400/40', bg: 'bg-yellow-400/10' },
+  playing:   { label: 'En progreso', dot: 'bg-blue-400',   text: 'text-blue-400',    border: 'border-blue-400/40',   bg: 'bg-blue-400/10'   },
+  completed: { label: 'Completado',  dot: 'bg-primary-green', text: 'text-primary-green', border: 'border-primary-green/40', bg: 'bg-primary-green/10' },
+  abandoned: { label: 'Abandonado',  dot: 'bg-red-400',    text: 'text-red-400',     border: 'border-red-400/40',    bg: 'bg-red-400/10'    },
 }
 
-const statusColors = {
-  pending: 'bg-yellow-500',
-  playing: 'bg-blue-500',
-  completed: 'bg-green-500',
-  abandoned: 'bg-red-500',
+function StarDisplay({ rating }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} className={`text-base ${i <= rating ? 'star-filled' : 'star-empty'}`}>★</span>
+      ))}
+    </div>
+  )
+}
+
+function StarPicker({ rating, onChange }) {
+  const [hover, setHover] = useState(0)
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map(i => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onChange(i === rating ? 0 : i)}
+          onMouseEnter={() => setHover(i)}
+          onMouseLeave={() => setHover(0)}
+          className="text-2xl leading-none transition-colors"
+          style={{ color: i <= (hover || rating) ? '#e91e8c' : '#456' }}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export default function BacklogDetail() {
@@ -36,47 +60,44 @@ export default function BacklogDetail() {
   const [reviewText, setReviewText] = useState('')
   const [hasReview, setHasReview] = useState(false)
   const [savingReview, setSavingReview] = useState(false)
+  const [reviewSaved, setReviewSaved] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [isInMyBacklog, setIsInMyBacklog] = useState(false)
   const [addingToBacklog, setAddingToBacklog] = useState(false)
+  const [communityReviews, setCommunityReviews] = useState([])
 
-  useEffect(() => {
-    fetchItemDetails()
-  }, [id])
+  useEffect(() => { fetchItemDetails() }, [id]) // eslint-disable-line
 
   const fetchItemDetails = async () => {
     setLoading(true)
     try {
-      // Obtener todos los items del backlog
       const data = await backlogService.getAll()
       const foundItem = data.items.find(i => i.id === parseInt(id))
-      
-      if (!foundItem) {
-        navigate('/backlog')
-        return
-      }
+      if (!foundItem) { navigate('/backlog'); return }
 
       setItem(foundItem)
       setProgress(foundItem.progress || 0)
       setIsOwner(foundItem.userId === user.id)
 
-      // Verificar si ya está en mi backlog (si no es mío)
       if (foundItem.userId !== user.id && foundItem.externalId) {
-        const alreadyInBacklog = myBacklogItems.some(
+        setIsInMyBacklog(myBacklogItems.some(
           i => i.externalId === foundItem.externalId && i.contentType === foundItem.contentType
-        )
-        setIsInMyBacklog(alreadyInBacklog)
+        ))
       }
 
-      // Si tiene reseña y es mío, cargarla
-      if (foundItem.userId === user.id && foundItem.reviews && foundItem.reviews.length > 0) {
-        const myReview = foundItem.reviews[0]
-        setRating(myReview.rating)
-        setReviewText(myReview.reviewText || '')
+      if (foundItem.userId === user.id && foundItem.reviews?.length > 0) {
+        const r = foundItem.reviews[0]
+        setRating(r.rating)
+        setReviewText(r.reviewText || '')
         setHasReview(true)
       }
-    } catch (error) {
-      console.error('Error cargando item:', error)
+
+      if (foundItem.externalId && foundItem.contentType) {
+        followService.getItemReviews(foundItem.externalId, foundItem.contentType, 8)
+          .then(d => setCommunityReviews((d.reviews || []).filter(r => r.user?.id !== user.id)))
+          .catch(() => {})
+      }
+    } catch {
       navigate('/backlog')
     } finally {
       setLoading(false)
@@ -84,43 +105,26 @@ export default function BacklogDetail() {
   }
 
   const handleStatusChange = async (newStatus) => {
+    if (item.status === newStatus) return
     await updateItemStatus(item.id, newStatus)
     setItem({ ...item, status: newStatus })
   }
 
-  const handleProgressChange = async (newProgress) => {
-    setProgress(newProgress)
-    
-    try {
-      await backlogService.update(item.id, { progress: newProgress })
-      setItem({ ...item, progress: newProgress })
-    } catch (error) {
-      console.error('Error actualizando progreso:', error)
-    }
+  const handleProgressChange = async (val) => {
+    setProgress(val)
+    try { await backlogService.update(item.id, { progress: val }) } catch {}
   }
 
   const handleSaveReview = async () => {
-    if (rating === 0) {
-      alert('Por favor, selecciona una valoración')
-      return
-    }
-
+    if (!rating) return
     setSavingReview(true)
     try {
-      await reviewService.createOrUpdate(item.id, {
-        rating,
-        reviewText: reviewText.trim(),
-        tags: []
-      })
-      
+      await reviewService.createOrUpdate(item.id, { rating, reviewText: reviewText.trim(), tags: [] })
       setHasReview(true)
-      alert('Reseña guardada correctamente')
-      fetchItemDetails()
-    } catch (error) {
-      alert('Error al guardar la reseña')
-    } finally {
-      setSavingReview(false)
-    }
+      setReviewSaved(true)
+      setTimeout(() => setReviewSaved(false), 3000)
+    } catch {}
+    finally { setSavingReview(false) }
   }
 
   const handleDelete = async () => {
@@ -131,332 +135,336 @@ export default function BacklogDetail() {
   }
 
   const handleAddToMyBacklog = async () => {
-    if (!item.externalId) {
-      alert('Este item no se puede añadir automáticamente')
-      return
-    }
-
+    if (!item.externalId) return
     setAddingToBacklog(true)
     try {
-      await searchService.addToBacklog(item.contentType, item.externalId, {
-        status: 'pending',
-        priority: 'medium'
-      })
-      
+      await searchService.addToBacklog(item.contentType, item.externalId, { status: 'pending', priority: 'medium' })
       setIsInMyBacklog(true)
-      alert('¡Añadido a tu backlog!')
-    } catch (error) {
-      if (error.response?.data?.error?.includes('ya existe')) {
-        setIsInMyBacklog(true)
-        alert('Este item ya está en tu backlog')
-      } else {
-        alert('Error al añadir al backlog')
-      }
+    } catch (err) {
+      if (err.response?.data?.error?.includes('ya existe')) setIsInMyBacklog(true)
     } finally {
       setAddingToBacklog(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-purple" />
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-dark-bg flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+    </div>
+  )
+  if (!item) return null
 
-  if (!item) {
-    return null
-  }
+  const currentStatus = STATUS_CONFIG[item.status]
+  const review = item.reviews?.[0]
+  const devName = item.metadata?.developer || item.metadata?.studio || item.metadata?.creator
+  const releaseYear = item.metadata?.releaseDate ? new Date(item.metadata.releaseDate).getFullYear() : null
+  const typeEmoji = item.contentType === 'game' ? '🎮' : item.contentType === 'series' ? '📺' : item.contentType === 'anime' ? '✨' : '🎬'
 
   return (
     <div className="min-h-screen bg-dark-bg">
       <Header />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Volver
-        </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column - Image */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24">
-              {item.coverImage ? (
-                <img
-                  src={item.coverImage}
-                  alt={item.title}
-                  className="w-full rounded-xl shadow-2xl"
-                />
-              ) : (
-                <div className="w-full aspect-[2/3] bg-dark-card rounded-xl flex items-center justify-center">
-                  <span className="text-gray-600 text-6xl">🎮</span>
-                </div>
-              )}
+      {/* ── Hero ── */}
+      <div className="relative">
+        {/* Blurred background */}
+        <div className="absolute inset-0 overflow-hidden" style={{ height: '440px' }}>
+          {item.coverImage && (
+            <img
+              src={item.coverImage}
+              alt=""
+              className="w-full h-full object-cover scale-110"
+              style={{ filter: 'blur(28px)', opacity: 0.3 }}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-dark-bg/60 via-dark-bg/80 to-dark-bg" />
+        </div>
 
-              {/* Action buttons */}
-              {isOwner ? (
-                <button
-                  onClick={handleDelete}
-                  className="w-full mt-4 py-3 bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-5 h-5" />
-                  Eliminar del backlog
-                </button>
-              ) : (
-                <button
-                  onClick={handleAddToMyBacklog}
-                  disabled={addingToBacklog || isInMyBacklog}
-                  className={`w-full mt-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-                    isInMyBacklog
-                      ? 'bg-green-500/20 text-green-500 border border-green-500/30 cursor-not-allowed'
-                      : 'bg-gradient-main hover:opacity-90'
-                  }`}
-                >
-                  {addingToBacklog ? (
-                    'Añadiendo...'
-                  ) : isInMyBacklog ? (
-                    '✓ En tu backlog'
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      Añadir a mi backlog
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-gray-500 hover:text-white mb-6 transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </button>
 
-          {/* Right column - Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Title and metadata */}
-            <div>
-              <h1 className="text-4xl font-bold mb-4">{item.title}</h1>
-              
-              <div className="flex flex-wrap gap-4 text-gray-400">
-                {item.metadata?.releaseDate && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(item.metadata.releaseDate).getFullYear()}
-                  </div>
-                )}
-                
-                {item.metadata?.developer && (
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {item.metadata.developer}
-                  </div>
-                )}
-
-                {item.metadata?.studio && (
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {item.metadata.studio}
-                  </div>
-                )}
-
-                {item.metadata?.creator && (
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {item.metadata.creator}
+          <div className="flex gap-7">
+            {/* Left column */}
+            <div className="flex-shrink-0 w-36 sm:w-44">
+              {/* Cover */}
+              <div className="aspect-[2/3] rounded-lg overflow-hidden shadow-2xl bg-dark-card">
+                {item.coverImage ? (
+                  <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-5xl bg-dark-elevated">
+                    {typeEmoji}
                   </div>
                 )}
               </div>
 
-              {/* Genres */}
-              {item.metadata?.genres && item.metadata.genres.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {item.metadata.genres.map((genre, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-dark-hover rounded-full text-sm"
-                    >
-                      {genre}
-                    </span>
-                  ))}
+              {/* Status badge */}
+              {currentStatus && (
+                <div className={`mt-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs font-medium ${currentStatus.text} ${currentStatus.border} ${currentStatus.bg}`}>
+                  <span className={`w-2 h-2 rounded-full ${currentStatus.dot}`} />
+                  {currentStatus.label}
                 </div>
               )}
 
-              {/* Summary */}
+              {/* My rating */}
+              {isOwner && hasReview && (
+                <div className="mt-2 flex justify-center">
+                  <StarDisplay rating={rating} />
+                </div>
+              )}
+
+              {/* Action button */}
+              <div className="mt-3">
+                {isOwner ? (
+                  <button
+                    onClick={handleDelete}
+                    className="w-full py-2 rounded-lg bg-dark-card border border-dark-border text-red-400 text-xs hover:border-red-500/50 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Eliminar
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleAddToMyBacklog}
+                    disabled={addingToBacklog || isInMyBacklog}
+                    className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                      isInMyBacklog
+                        ? 'bg-primary-green/20 text-primary-green border border-primary-green/30 cursor-default'
+                        : 'bg-gradient-main text-white hover:opacity-90'
+                    }`}
+                  >
+                    {isInMyBacklog
+                      ? <><Check className="w-3.5 h-3.5" /> En tu backlog</>
+                      : addingToBacklog ? 'Añadiendo...'
+                      : <><Plus className="w-3.5 h-3.5" /> Añadir a mi backlog</>
+                    }
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Right column — item info */}
+            <div className="flex-1 min-w-0 pt-1">
+              <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-2">
+                {item.title}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                {releaseYear && <span className="text-gray-400 text-sm">{releaseYear}</span>}
+                {devName && (
+                  <>
+                    <span className="text-gray-600">·</span>
+                    <span className="text-gray-300 text-sm">{devName}</span>
+                  </>
+                )}
+                <span className="text-gray-600">·</span>
+                <span className="text-gray-500 text-sm capitalize">{item.contentType}</span>
+              </div>
+
               {item.metadata?.summary && (
-                <p className="text-gray-300 mt-6 leading-relaxed">
+                <p className="text-gray-300 text-sm leading-relaxed mb-4 max-w-2xl">
                   {item.metadata.summary}
                 </p>
               )}
-            </div>
 
-            {/* SOLO SI ES PROPIETARIO - Estado */}
-            {isOwner && (
-              <div className="card">
-                <h3 className="font-semibold mb-4">Estado</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {Object.entries(statusLabels).map(([status, label]) => (
+              {item.metadata?.genres?.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider w-20 flex-shrink-0">Géneros</span>
+                  <div className="flex flex-wrap gap-1">
+                    {item.metadata.genres.map((g, i) => (
+                      <span key={i} className="text-sm text-gray-300">
+                        {i > 0 && <span className="text-gray-600 mr-1.5">·</span>}
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {item.metadata?.platforms?.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider w-20 flex-shrink-0">Plataformas</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.metadata.platforms.map((p, i) => (
+                      <span key={i} className="text-xs border border-gray-700 rounded px-2 py-0.5 text-gray-300 bg-dark-elevated">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(item.metadata?.seasons || item.metadata?.episodes) && (
+                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-400">
+                  {item.metadata?.seasons && <span>{item.metadata.seasons} temporadas</span>}
+                  {item.metadata?.episodes && <span>{item.metadata.episodes} episodios</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Controls ── */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
+
+        {/* Owner controls */}
+        {isOwner && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+            {/* Left: status + progress */}
+            <div className="space-y-4">
+              {/* Status selector */}
+              <div className="bg-dark-card border border-dark-border rounded-xl p-5">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Estado</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
                     <button
-                      key={status}
-                      onClick={() => handleStatusChange(status)}
-                      className={`py-3 rounded-lg font-medium transition-all ${
-                        item.status === status
-                          ? `${statusColors[status]} text-white`
-                          : 'bg-dark-hover text-gray-400 hover:text-white'
+                      key={s}
+                      onClick={() => handleStatusChange(s)}
+                      className={`py-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all border ${
+                        item.status === s
+                          ? `${cfg.bg} ${cfg.border} ${cfg.text}`
+                          : 'bg-dark-elevated border-dark-border text-gray-500 hover:border-gray-500 hover:text-gray-300'
                       }`}
                     >
-                      {label}
+                      <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                      {cfg.label}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* SOLO SI ES PROPIETARIO - Progreso */}
-            {isOwner && (
-              <div className="card">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold">Progreso</h3>
-                  <span className="text-2xl font-bold text-primary-purple">
-                    {progress}%
-                  </span>
+              {/* Progress */}
+              <div className="bg-dark-card border border-dark-border rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">Progreso</p>
+                  <span className="text-sm font-bold text-primary-purple">{progress}%</span>
                 </div>
-                
                 <input
                   type="range"
-                  min="0"
-                  max="100"
+                  min="0" max="100"
                   value={progress}
                   onChange={(e) => handleProgressChange(parseInt(e.target.value))}
-                  className="w-full h-3 bg-dark-hover rounded-lg appearance-none cursor-pointer 
-                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 
-                    [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full 
-                    [&::-webkit-slider-thumb]:bg-gradient-main [&::-webkit-slider-thumb]:cursor-pointer
-                    [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 
-                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-gradient-main 
-                    [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0"
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
+                    [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:bg-primary-purple [&::-webkit-slider-thumb]:cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, 
-                      rgb(168, 85, 247) 0%, 
-                      rgb(217, 70, 239) ${progress}%, 
-                      rgb(42, 42, 42) ${progress}%, 
-                      rgb(42, 42, 42) 100%)`
+                    background: `linear-gradient(to right, #A855F7 0%, #A855F7 ${progress}%, #2c3440 ${progress}%, #2c3440 100%)`
                   }}
                 />
-                
-                <div className="flex justify-between text-xs text-gray-500 mt-2">
-                  <span>0%</span>
-                  <span>50%</span>
-                  <span>100%</span>
+                <div className="flex justify-between text-xs text-gray-600 mt-1.5">
+                  <span>0%</span><span>50%</span><span>100%</span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* SOLO SI ES PROPIETARIO - Mi valoración */}
-            {isOwner && (
-              <div className="card">
-                <h3 className="font-semibold mb-4">Mi valoración</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">
-                      Calificación
-                    </label>
-                    <StarRating 
-                      rating={rating} 
-                      onRatingChange={setRating}
-                      size="lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">
-                      Reseña (opcional)
-                    </label>
-                    <textarea
-                      value={reviewText}
-                      onChange={(e) => setReviewText(e.target.value)}
-                      placeholder="Escribe tu opinión sobre este contenido..."
-                      rows={4}
-                      className="w-full bg-dark-hover border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-purple resize-none"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleSaveReview}
-                    disabled={savingReview || rating === 0}
-                    className="btn-primary w-full"
-                  >
-                    {savingReview ? 'Guardando...' : hasReview ? 'Actualizar reseña' : 'Guardar reseña'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* SI NO ES PROPIETARIO - Mostrar solo info */}
-            {!isOwner && (
-              <div className="card">
-                <h3 className="font-semibold mb-4">Información del usuario</h3>
-                <div className="space-y-3 text-gray-300">
-                  <p><span className="text-gray-500">Estado:</span> {statusLabels[item.status] || 'Desconocido'}</p>
-                  {item.progress > 0 && (
-                    <p><span className="text-gray-500">Progreso:</span> {item.progress}%</p>
-                  )}
-                  {item.reviews && item.reviews.length > 0 && (
-                    <>
-                      <p className="flex items-center gap-2">
-                        <span className="text-gray-500">Valoración:</span>
-                        <StarRating rating={item.reviews[0].rating} readonly size="sm" />
-                        <span>{item.reviews[0].rating}/5</span>
-                      </p>
-                      {item.reviews[0].reviewText && (
-                        <div className="mt-4 p-4 bg-dark-hover rounded-lg">
-                          <p className="text-sm text-gray-400 mb-2">Reseña:</p>
-                          <p className="text-gray-300">{item.reviews[0].reviewText}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Platforms/Seasons info */}
-            {(item.metadata?.platforms || item.metadata?.seasons) && (
-              <div className="card">
-                <h3 className="font-semibold mb-4">Información adicional</h3>
-                
-                {item.metadata?.platforms && (
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-400 mb-2">Plataformas</p>
-                    <div className="flex flex-wrap gap-2">
-                      {item.metadata.platforms.map((platform, index) => (
-                        <span key={index} className="px-3 py-1 bg-dark-hover rounded-lg text-sm">
-                          {platform}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {item.metadata?.seasons && (
-                  <div>
-                    <p className="text-sm text-gray-400 mb-2">Temporadas</p>
-                    <p className="text-lg">{item.metadata.seasons} temporadas</p>
-                  </div>
-                )}
-
-                {item.metadata?.episodes && (
-                  <div>
-                    <p className="text-sm text-gray-400 mb-2">Episodios</p>
-                    <p className="text-lg">{item.metadata.episodes} episodios</p>
-                  </div>
+            {/* Right: review */}
+            <div className="bg-dark-card border border-dark-border rounded-xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                  {hasReview ? 'Tu reseña' : 'Escribir reseña'}
+                </p>
+                {hasReview && (
+                  <span className="text-xs text-primary-green bg-primary-green/10 border border-primary-green/20 px-2 py-0.5 rounded-full">
+                    Guardada
+                  </span>
                 )}
               </div>
+
+              <div className="space-y-3">
+                <StarPicker rating={rating} onChange={setRating} />
+
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="¿Qué te ha parecido?"
+                  rows={4}
+                  className="w-full bg-dark-elevated border border-dark-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
+                />
+
+                <button
+                  onClick={handleSaveReview}
+                  disabled={savingReview || !rating}
+                  className={`px-5 py-2 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                    reviewSaved
+                      ? 'text-primary-green bg-primary-green/10 border border-primary-green/20'
+                      : 'text-white hover:opacity-90'
+                  }`}
+                  style={reviewSaved ? {} : { background: '#e91e8c' }}
+                >
+                  {reviewSaved
+                    ? <><Check className="w-4 h-4" /> Guardado</>
+                    : savingReview ? 'Guardando...'
+                    : hasReview ? 'Actualizar reseña' : 'Guardar reseña'
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Non-owner: view only */}
+        {!isOwner && review && (
+          <div className="bg-dark-card border border-dark-border rounded-xl p-5 mb-8">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Reseña del propietario</p>
+            <div className="flex items-center gap-3 mb-3">
+              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${STATUS_CONFIG[item.status]?.text} ${STATUS_CONFIG[item.status]?.border} ${STATUS_CONFIG[item.status]?.bg}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${STATUS_CONFIG[item.status]?.dot}`} />
+                {STATUS_CONFIG[item.status]?.label}
+              </span>
+              {item.progress > 0 && (
+                <span className="text-xs text-gray-400">{item.progress}% completado</span>
+              )}
+            </div>
+            <StarDisplay rating={review.rating} />
+            {review.reviewText && (
+              <p className="text-gray-300 text-sm leading-relaxed mt-2">{review.reviewText}</p>
             )}
           </div>
-        </div>
+        )}
+
+        {/* Community reviews */}
+        {communityReviews.length > 0 && (
+          <div>
+            <h2 className="text-base font-semibold mb-4">Reseñas de la comunidad</h2>
+            <div className="space-y-3">
+              {communityReviews.map(r => (
+                <div key={r.id} className="bg-dark-card border border-dark-border rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-main flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                      {r.user?.username?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <span className="text-sm font-semibold text-white">{r.user?.username}</span>
+                        <span className="text-xs text-gray-600 flex-shrink-0">
+                          {new Date(r.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <StarDisplay rating={r.rating} />
+                        {r.backlogItem?.status && STATUS_CONFIG[r.backlogItem.status] && (
+                          <span className={`text-xs flex items-center gap-1 ${STATUS_CONFIG[r.backlogItem.status].text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full inline-block ${STATUS_CONFIG[r.backlogItem.status].dot}`} />
+                            {STATUS_CONFIG[r.backlogItem.status].label}
+                          </span>
+                        )}
+                      </div>
+                      {r.reviewText && (
+                        <p className="text-gray-300 text-sm leading-relaxed">{r.reviewText}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

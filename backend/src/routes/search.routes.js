@@ -7,15 +7,18 @@ const authMiddleware = require('../middleware/auth.middleware')
 router.use(authMiddleware)
 
 // GET /search?query=elden+ring&type=game
-// Buscar contenido en las APIs externas
 router.get('/', searchController.searchContent)
 
+// GET /search/browse/:type?page=1&sortBy=popularity&genre=12
+router.get('/browse/:type', searchController.browseContent)
+
+// GET /search/genres/:type
+router.get('/genres/:type', searchController.getGenresByType)
+
 // GET /search/:type/:externalId
-// Obtener detalles completos de un contenido específico
 router.get('/:type/:externalId', searchController.getContentDetails)
 
 // POST /search/:type/:externalId/add
-// Añadir contenido al backlog directamente desde la búsqueda
 router.post('/:type/:externalId/add', searchController.addContentToBacklog)
 
 module.exports = router

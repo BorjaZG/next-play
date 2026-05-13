@@ -128,7 +128,103 @@ const getGameById = async (gameId) => {
   }
 }
 
+// Listar juegos populares con paginación y filtros
+const browseGames = async (offset = 0, limit = 60, sortBy = 'popularity', genreId = null) => {
+  try {
+    const token = await getTwitchToken()
+
+    const sortField =
+      sortBy === 'rating' ? 'rating' :
+      sortBy === 'newest' ? 'first_release_date' :
+      'rating_count'
+
+    let whereClause = 'rating_count > 10 & cover.url != null'
+    if (genreId) whereClause += ` & genres = (${genreId})`
+
+    const response = await axios.post(
+      'https://api.igdb.com/v4/games',
+      `
+        fields name, cover.url, first_release_date, rating, rating_count, genres.name;
+        where ${whereClause};
+        sort ${sortField} desc;
+        limit ${limit};
+        offset ${offset};
+      `,
+      {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+
+    return response.data.map(game => ({
+      externalId: game.id.toString(),
+      contentType: 'game',
+      title: game.name,
+      coverImage: game.cover?.url ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : null,
+      metadata: {
+        releaseDate: game.first_release_date
+          ? new Date(game.first_release_date * 1000).toISOString().split('T')[0]
+          : null,
+        genres: game.genres?.map(g => g.name) || [],
+        rating: game.rating ? Math.round(game.rating) / 10 : null,
+        ratingCount: game.rating_count || 0
+      }
+    }))
+  } catch (error) {
+    console.error('Error en browseGames:', error.response?.data || error.message)
+    throw new Error('Error al listar juegos')
+  }
+}
+
+// Contar juegos para paginación
+const countGames = async (genreId = null) => {
+  try {
+    const token = await getTwitchToken()
+    let whereClause = 'rating_count > 10 & cover.url != null'
+    if (genreId) whereClause += ` & genres = (${genreId})`
+
+    const response = await axios.post(
+      'https://api.igdb.com/v4/games/count',
+      `where ${whereClause};`,
+      {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    return response.data.count || 0
+  } catch {
+    return 0
+  }
+}
+
+// Obtener géneros de IGDB
+const getGameGenres = async () => {
+  try {
+    const token = await getTwitchToken()
+    const response = await axios.post(
+      'https://api.igdb.com/v4/genres',
+      'fields id, name; limit 50;',
+      {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    return response.data.sort((a, b) => a.name.localeCompare(b.name))
+  } catch {
+    return []
+  }
+}
+
 module.exports = {
   searchGames,
-  getGameById
+  getGameById,
+  browseGames,
+  countGames,
+  getGameGenres
 }
